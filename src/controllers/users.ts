@@ -1,13 +1,20 @@
-module.exports = {
-    getHomepage: (req, res) => {
-        res.send("Homepage utenti")
-    },
+import { User } from "../models/users";
 
-    addUser: (req, res) => {
-        res.send("Utente aggiunto")
-    },
+export const addUser = (req, res) => {
+    User.create({
+        username: req.body.username,
+        email: req.body.email,
+        bio: req.body.bio,
+        avatar: req.body.avatar
+      }).then(u => res.json(u));
+};
 
-    getUserById: (req, res) => {
-        res.render('infoUser', {userId: req.params.userId})
-    }
-}
+export const getUserById = (req, res) => {
+    User.findById(req.params.userID)
+    .then(u => res.json(u));
+};
+
+export const getUserByUsername = (req, res) => {
+    User.findOne({username: req.params.username})
+    .then(u => res.json(u));
+};

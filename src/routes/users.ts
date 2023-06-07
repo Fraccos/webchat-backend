@@ -1,13 +1,11 @@
-const router = express.Router()
+import { addUser, getUserById, getUserByUsername } from "../controllers/users";
+import express from "express";
 
-const usersController = require('../controllers/users')
+export const usersRouter = express.Router();
 
-router.use('/', (req, res, next) => {
-    console.log("Richiesta ricevuta ");
-    next()
-})
-router.get('/', usersController.getHomepage)
-router.get('/add', usersController.addUser)
-router.get('/:userId', usersController.getUserById)
-
-module.exports = router
+usersRouter.get('/', (req, res) => {
+    res.json({message: "ok"});
+});
+usersRouter.post('/add', addUser);
+usersRouter.get('/byUsername/:username', getUserByUsername);
+usersRouter.get('/byUserID/:userID', getUserById);

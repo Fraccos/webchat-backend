@@ -1,10 +1,17 @@
-import mongoose = require("mongoose");
+import { Schema, model } from "mongoose";
 
-const userSchema = new mongoose.Schema({
+export interface IUSer {
     username: String,
     email: String,
     bio: String,
-    avatar: String,
+    avatar?: String,
+}
+
+const userSchema = new Schema<IUSer>({
+    username: {type: String, required: true},
+    email:  {type: String, required: true},
+    bio:  {type: String, required: true},
+    avatar:  {type: String},
 });
 
-module.exports = mongoose.model("User", userSchema);
+export const User = model<IUSer>("User", userSchema);

@@ -1,41 +1,23 @@
-const env = require("./Environment")
-const express = require("express");
-const mongoose = require("mongoose");
+import { dbUrl, webPort } from "./Environment";
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import { usersRouter } from "./routes/users";
 
 const app = express();
-const usersRouter = require('./routes/users');
-
-mongoose.connect(env.dbUrl);
+mongoose.connect(dbUrl);
 const db = mongoose.connection;
-db.once("open", () => {
-    console.log(`Connected to DB ${env.dbUrl}`);
-    app.listen(env.webPort, () => {
-        console.log(`Listening on port ${env.webPort}`);
-    });
+
+app.use(express.json())
+.use(cors())
+.use('/users', usersRouter)
+.get('/', (req, res) => {
+    res.json({message: "ok"});
 });
 
-app.use('/users', usersRouter)
-
-app.get('/', (req, res) => {
-    res.send("Benvenuto!")
-})
-
-//app.get('/users', (req, res) => {
-//    res.json(userss)
-//})
-
-app.listen(3000, () => {
-    console.log("App in ascolto")
-  })
-
-let userList = [];
-
-app.post('/users', (req, res) => {
-    const userss = req.body;
-
-
-    console.log(userss);
-    userList.push(userss);
-
-    res.send('l utente è stato aggiunto ');
+db.once("open", () => {
+    console.log(`Connected to DB ${dbUrl}`);
+    app.listen(webPort, () => {
+        console.log(`Listening on port ${webPort}`);
+    });
 });
