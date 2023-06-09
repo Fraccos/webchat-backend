@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import { Model, Schema, model } from "mongoose";
 
 export interface IUSer {
     username: String,
@@ -6,8 +6,9 @@ export interface IUSer {
     bio: String,
     avatar?: String,
 }
+type UserModelType = Model<IUSer>;
 
-const userSchema = new Schema<IUSer>({
+const userSchema = new Schema<IUSer, UserModelType>({
     username: {type: String, required: true},
     email:  {type: String, required: true},
     bio:  {type: String, required: true},
