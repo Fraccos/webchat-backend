@@ -1,14 +1,23 @@
-const env = require("./Environment")
-const express = require("express");
-const mongoose = require("mongoose");
+import { dbUrl, webPort } from "./Environment";
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import { usersRouter } from "./routes/users";
 
 const app = express();
-
-mongoose.connect(env.dbUrl);
+mongoose.connect(dbUrl);
 const db = mongoose.connection;
+
+app.use(express.json())
+.use(cors())
+.use('/users', usersRouter)
+.get('/', (req, res) => {
+    res.json({message: "ok"});
+});
+
 db.once("open", () => {
-    console.log(`Connected to DB ${env.dbUrl}`);
-    app.listen(env.webPort, () => {
-        console.log(`Listening on port ${env.webPort}`);
+    console.log(`Connected to DB ${dbUrl}`);
+    app.listen(webPort, () => {
+        console.log(`Listening on port ${webPort}`);
     });
 });
