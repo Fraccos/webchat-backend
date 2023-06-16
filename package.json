@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/Fraccos/webchat-backend#readme",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.18.2",
     "mongoose": "^7.2.2",
     "socket.io": "^4.6.2"
