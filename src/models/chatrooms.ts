@@ -5,7 +5,7 @@ type MessageContentModelType = Model<IMessageContent>;
 
 type MessageOverrides = {
     content: Types.DocumentArray<IMessageContent>
-}
+};
 type MessageModelType = Model<IMessage, {}, MessageOverrides>;
 
 type ChatroomOverrides = {
