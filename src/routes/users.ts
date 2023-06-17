@@ -1,4 +1,4 @@
-import { addUser, getUserById, getUserByUsername } from "../controllers/users";
+import { addUser, getUserById, getUserByUsername, registerUser, loginUser } from "../controllers/users";
 import express from "express";
 import AuthService from "../services/auth";
 
@@ -7,6 +7,9 @@ export const usersRouter = express.Router();
 usersRouter.get('/', (req, res) => {
     res.json({message: "ok"});
 });
+
+usersRouter.post("/register", registerUser)
+usersRouter.post("/login", loginUser)
 
 //usersRouter.post('/add', addUser);
 

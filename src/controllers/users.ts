@@ -37,12 +37,8 @@ export const registerUser = (req:Request, res:Response) => {
 }
 
 export const loginUser = (req:Request, res:Response, next:NextFunction) => {
-    passport.authenticate('local', { 
-        failureRedirect: '/login-failure', 
-        successRedirect: '/login-success'
-    }), (error:Error, req:Request, res:Response, next:NextFunction) => {
-        if (error) {
-            next(error)
-        }    
-    }
+  passport.authenticate('local', { 
+      failureRedirect: '/login-failure', 
+      successRedirect: '/login-success'
+    })
 }

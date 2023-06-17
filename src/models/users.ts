@@ -10,7 +10,7 @@ type UserModel = UserModelGeneric<IUser>;
 const userSchema = new Schema<IUser, UserModel>({
     username: {type: String, required: true, unique:true},
     email:  {type: String, required: true, unique:true},
-    bio:  {type: String, required: true},
+    bio:  {type: String, required: false},
     avatar:  {type: String},
 }) as PassportLocalSchema<IUser, UserModel>;
 
