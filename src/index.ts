@@ -3,10 +3,14 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import { usersRouter } from "./routes/users";
+import AuthService from "./services/auth";
 
 const app = express();
 mongoose.connect(dbUrl);
 const db = mongoose.connection;
+
+const authService = new AuthService(app);
+authService.init()
 
 app.use(express.json())
 .use(cors())

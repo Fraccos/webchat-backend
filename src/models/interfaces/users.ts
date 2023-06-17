@@ -1,6 +1,9 @@
-export interface IUser {
-    username: String,
-    email: String,
-    bio: String,
-    avatar?: String,
+import { PassportLocalDocument} from "mongoose";
+
+
+export interface IUser extends PassportLocalDocument {
+    username: string,
+    email: string,
+    bio?: string,
+    avatar?: string,
 }
