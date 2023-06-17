@@ -1,31 +1,13 @@
-import { Date, Model, ObjectId, Schema, Types, model } from "mongoose";
+import { Model, Schema, Types, model } from "mongoose";
+import { IChatroom, IMessage, IMessageContent } from "./interfaces/chatrooms";
 
-export interface IMessageContent {
-    type: string,
-    value: string
-}
 type MessageContentModelType = Model<IMessageContent>;
 
-export interface IMessage {
-    _id: ObjectId
-    sender: ObjectId,
-    timestamp: Date,
-    readed: boolean,
-    edited: boolean,
-    content: IMessageContent[]
-}
 type MessageOverrides = {
     content: Types.DocumentArray<IMessageContent>
-}
+};
 type MessageModelType = Model<IMessage, {}, MessageOverrides>;
 
-export interface IChatroom {
-    name?: string,
-    type: string,
-    members: [{type: ObjectId, ref: "User"}],
-    timestamp: Date,
-    messages: IMessage[]
-}
 type ChatroomOverrides = {
     messages: Types.DocumentArray<IMessage>
 };
@@ -38,7 +20,7 @@ const chatroomSchema = new Schema<IChatroom, ChatroomModelType>({
     timestamp: {type: Date, required: true},
     messages: [new Schema<IMessage, MessageModelType>({
         sender: {type: Types.ObjectId, required: true},
-        timestamp: {type: DataView, required: true},
+        timestamp: {type: Date, required: true},
         readed: {type: Boolean, required: true, default: false},
         edited: {type: Boolean, required: true, default: false},
         content: [new Schema<IMessageContent, MessageContentModelType>({
