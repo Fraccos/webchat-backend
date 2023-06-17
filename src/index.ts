@@ -17,6 +17,9 @@ app.use(express.json())
 .use('/users', usersRouter)
 .get('/', (req, res) => {
     res.json({message: "ok"});
+})
+.get("/login", (req, res) => {
+    res.json({msg: "not authenticated"});
 });
 
 db.once("open", () => {

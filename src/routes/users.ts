@@ -1,6 +1,7 @@
-import { addUser, getUserById, getUserByUsername, registerUser, loginUser } from "../controllers/users";
+import { getUserById, getUserByUsername, registerUser } from "../controllers/users";
 import express from "express";
 import AuthService from "../services/auth";
+import passport from "passport";
 
 export const usersRouter = express.Router();
 
@@ -9,7 +10,13 @@ usersRouter.get('/', (req, res) => {
 });
 
 usersRouter.post("/register", registerUser)
-usersRouter.post("/login", loginUser)
+usersRouter.post('/login', passport.authenticate('local', { 
+    failureRedirect: '/login', 
+    successRedirect: '/'
+  }), (err, req, res, next) => {
+    if (err) next(err);
+  });
+  
 
 //usersRouter.post('/add', addUser);
 

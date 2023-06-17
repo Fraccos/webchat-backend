@@ -1,4 +1,3 @@
-import passport from "passport";
 import { User } from "../models/users";
 import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 
@@ -34,11 +33,4 @@ export const registerUser = (req:Request, res:Response) => {
         }
       }
     )
-}
-
-export const loginUser = (req:Request, res:Response, next:NextFunction) => {
-  passport.authenticate('local', { 
-      failureRedirect: '/login-failure', 
-      successRedirect: '/login-success'
-    })
 }
