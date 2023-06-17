@@ -4,7 +4,7 @@
   "description": "Simple web-based chat system backend",
   "main": "dist/index.ts",
   "scripts": {
-    "start": "tsc && node dist/app.js",
+    "start": "tsc && node dist/index.js",
     "lint": "eslint . --ext .ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -20,8 +20,7 @@
   "homepage": "https://github.com/Fraccos/webchat-backend#readme",
   "dependencies": {
     "@types/express-session": "^1.17.7",
-    "@types/passport-local": "^1.0.35",
-    "@types/passport-local-mongoose": "^6.1.1",
+    "@types/passport": "^1.0.12",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
