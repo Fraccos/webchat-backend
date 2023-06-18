@@ -20,10 +20,12 @@
   "homepage": "https://github.com/Fraccos/webchat-backend#readme",
   "dependencies": {
     "@types/express-session": "^1.17.7",
+    "@types/jsonwebtoken": "^9.0.2",
     "@types/passport": "^1.0.12",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
+    "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.2.2",
     "passport": "^0.6.0",
     "passport-local": "^1.0.0",
