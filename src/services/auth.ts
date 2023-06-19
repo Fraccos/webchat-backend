@@ -45,8 +45,7 @@ export default class AuthService {
             data: user._id,
           },
           sessionSK,
-          { expiresIn: "1h" }
-        );
+          { expiresIn: "1h" });
         res.json({
           success: true,
           token: signedToken,

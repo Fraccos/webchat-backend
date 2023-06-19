@@ -6,15 +6,17 @@ import { usersRouter } from "./routes/users";
 import AuthService from "./services/auth";
 import { Server, Socket } from "socket.io";
 import http from 'http';
+
+
 const app = express();
 const server = http.createServer(app);
-
 
 mongoose.connect(dbUrl);
 const db = mongoose.connection;
 
 const authService = new AuthService(app);
 authService.init()
+
 
 app.use(express.json())
 .use(cors())
@@ -25,6 +27,7 @@ app.use(express.json())
 .get("/login", (req, res) => {
     res.json({msg: "not authenticated"});
 });
+
 
 db.once("open", () => {
     console.log(`Connected to DB ${dbUrl}`);
@@ -41,8 +44,5 @@ db.once("open", () => {
 
     server.listen(webPort, () => {
         console.log(`Listening on port ${webPort}`);
-    });
-    
-      
-    
+    }); 
 });

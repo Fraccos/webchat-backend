@@ -1,7 +1,6 @@
 import { getUserById, getUserByUsername, registerUser } from "../controllers/users";
 import express from "express";
 import AuthService from "../services/auth";
-import passport from "passport";
 
 export const usersRouter = express.Router();
 
