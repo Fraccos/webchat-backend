@@ -6,7 +6,6 @@ import { usersRouter } from "./routes/users";
 import AuthService from "./services/auth";
 import { Server, Socket } from "socket.io";
 import http from 'http';
-import { addUser } from "./controllers/chatrooms";
 const app = express();
 const server = http.createServer(app);
 
@@ -37,7 +36,6 @@ db.once("open", () => {
     io.use(AuthService.authSocket);
 
     io.on("connection", (socket) => {
-        socket.on("chatMessage", addUser)
         console.log("Ciao");
     });
 
