@@ -16,7 +16,7 @@ export const createChatroom = (req:Request, res:Response, user: IUser) => {
         }
     } 
     else if (req.body.type === "group") {
-        if (req.body.owners === undefined) {
+        if (req.body.owners === undefined || req.body.owners.length < 1 ) {
             throw new Error("Every group must have at least one owner")
         }
         if (!req.body.owners.find(user)) {
