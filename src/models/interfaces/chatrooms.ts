@@ -9,7 +9,7 @@ export interface IMessage {
     sender: {type: ObjectId, ref: "User"},
     created: Number,
     lastModified: Number,
-    readed: boolean,
+    readed?: Date,
     edited: boolean,
     content: IMessageContent[]
 }

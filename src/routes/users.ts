@@ -2,6 +2,7 @@ import { getUserById, getUserByUsername, registerUser } from "../controllers/use
 import express from "express";
 import AuthService from "../services/auth";
 
+
 export const usersRouter = express.Router();
 
 usersRouter.get('/', (req, res) => {
@@ -10,18 +11,10 @@ usersRouter.get('/', (req, res) => {
 
 usersRouter.post("/register", registerUser)
 usersRouter.post('/login', AuthService.login)
-/*
-usersRouter.post('/login', passport.authenticate('local', { 
-    failureRedirect: '/login', 
-    successRedirect: '/'
-  }), (err, req, res, next) => {
-    if (err) next(err);
-  });
-*/
-  
+
 
 //usersRouter.post('/add', addUser);
-usersRouter.use(AuthService.expressJWT)
+//usersRouter.use(AuthService.expressJWT)
 usersRouter.use(AuthService.isValid)
 usersRouter.get('/byUsername/:username', getUserByUsername);
 

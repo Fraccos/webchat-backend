@@ -6,6 +6,7 @@ import { usersRouter } from "./routes/users";
 import AuthService from "./services/auth";
 import { Server, Socket } from "socket.io";
 import http from 'http';
+import { SocketService } from "./services/socket";
 
 
 const app = express();
@@ -31,17 +32,8 @@ app.use(express.json())
 
 db.once("open", () => {
     console.log(`Connected to DB ${dbUrl}`);
-    const io = new Server(server, {
-        cors: {
-            origin: '*'
-        }
-    });
-    io.use(AuthService.authSocket);
-
-    io.on("connection", (socket) => {
-        console.log("Ciao");
-    });
-
+    
+    SocketService.init(server);
     server.listen(webPort, () => {
         console.log(`Listening on port ${webPort}`);
     }); 

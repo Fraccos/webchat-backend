@@ -15,7 +15,7 @@ const messageSchema = new Schema<IMessage, MessageModelType>({
     sender: {type: Types.ObjectId, required: true},
     created: {type: Number, required: true},
     lastModified: {type: Number, required: true},
-    readed: {type: Boolean, required: true, default: false},
+    readed: {type: Date, required: false},
     edited: {type: Boolean, required: true, default: false},
     content: [messageContentSchema]
 })
@@ -31,12 +31,13 @@ const chatroomSchema = new Schema<IChatroom, ChatroomModelType>({
     members: [{type: Types.ObjectId, ref: "User", required: true}],
     messages: [messageSchema]
 });
-chatroomSchema.pre("save", function() {
+chatroomSchema.pre("save", async function() {
     if (this.type === "single") {
         if ((this.members.length as Number) !== 2) {
             throw new Error("Invalid number of members for a single chatroom")
         }
-        if (Chatroom.find({type:"single", members:this.members})) {
+        const existsChat = await Chatroom.find({type:"single", members:this.members});
+        if (existsChat) {
             throw new Error("Already exists a private chatroom with those members")
         }
     }
