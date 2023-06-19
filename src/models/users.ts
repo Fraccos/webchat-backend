@@ -1,13 +1,19 @@
-import { Model, Schema, model } from "mongoose";
+import { Schema, model } from "mongoose";
 import { IUser } from "./interfaces/users";
+import passportLocalMongoose from "passport-local-mongoose"
+import { Document, PassportLocalModel, PassportLocalSchema } from "mongoose";
 
-type UserModelType = Model<IUser>;
+interface UserModelGeneric <T extends Document> extends PassportLocalModel<T> {}
+type UserModel = UserModelGeneric<IUser>;
 
-const userSchema = new Schema<IUser, UserModelType>({
-    username: {type: String, required: true},
-    email:  {type: String, required: true},
-    bio:  {type: String, required: true},
+
+const userSchema = new Schema<IUser, UserModel>({
+    username: {type: String, required: true, unique:true},
+    email:  {type: String, required: true, unique:true},
+    bio:  {type: String, required: false},
     avatar:  {type: String},
-});
+}) as PassportLocalSchema<IUser, UserModel>;
 
-export const User = model<IUser>("User", userSchema);
+userSchema.plugin(passportLocalMongoose);
+
+export const User:UserModel = model<IUser>("User", userSchema);
