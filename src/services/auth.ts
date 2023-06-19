@@ -95,7 +95,7 @@ export default class AuthService {
   }
 
 
-  static authSocket(socket: Socket, next: nextFnSocket) {
+  static authSocket(socket: Socket, next: NextFunction) {
     const token = socket.handshake.auth.token;
     if (!token) {
         return next(new Error('Authetication is Missing'));

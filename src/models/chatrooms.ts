@@ -16,11 +16,13 @@ type ChatroomModelType = Model<IChatroom, {}, ChatroomOverrides>;
 const chatroomSchema = new Schema<IChatroom, ChatroomModelType>({
     name: {type: String, required: false},
     type: {type: String, required: true, default: "single"},
+    owners: [{type: Types.ObjectId, ref: "User", required: false}],
     members: [{type: Types.ObjectId, ref: "User", required: true}],
     timestamp: {type: Date, required: true},
     messages: [new Schema<IMessage, MessageModelType>({
         sender: {type: Types.ObjectId, required: true},
-        timestamp: {type: Date, required: true},
+        created: {type: Date, required: true},
+        lastModified: {type: Date, required: true},
         readed: {type: Boolean, required: true, default: false},
         edited: {type: Boolean, required: true, default: false},
         content: [new Schema<IMessageContent, MessageContentModelType>({
