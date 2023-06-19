@@ -36,10 +36,11 @@ chatroomSchema.pre("save", async function() {
         if ((this.members.length as Number) !== 2) {
             throw new Error("Invalid number of members for a single chatroom")
         }
+        /*
         const existsChat = await Chatroom.find({type:"single", members:this.members});
         if (existsChat) {
             throw new Error("Already exists a private chatroom with those members")
-        }
+        }*/
     }
     if (this.type === "group") {
         if (this.owners === undefined || this.owners.length < 1 ) {

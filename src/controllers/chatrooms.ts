@@ -3,13 +3,21 @@ import { Chatroom } from "../models/chatrooms";
 import { Request, Response } from 'express';
 import { IUser } from "../models/interfaces/users";
 import { IChatroom, IMessage } from "../models/interfaces/chatrooms";
+import { isContext } from "vm";
+import { Socket } from "socket.io";
+import { SocketService } from "../services/socket";
 
-const isMember = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => c.members.find(user._id));
-const isOwner = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => c.owners.find(user._id));
+const isMember = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => { 
+    if (c === null) {
+        return false;
+    }
+    return c.members.includes(user._id)
+});
+const isOwner = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => c.owners.includes(user._id));
 
-export const createChatroom = (req:Request, res:Response, user: IUser) => {
+export const createChatroom = (req:Request, res:Response) => {
     const opFields = {}
-    if (!req.body.members.find(user._id)) 
+    if (!req.body.members.find((id) => id === req.body.userId)) 
         throw new Error("Invalid chat")
         
     if (req.body.type === "single") {
@@ -26,7 +34,7 @@ export const createChatroom = (req:Request, res:Response, user: IUser) => {
         }).then(u => res.json(u));
     } 
     else if (req.body.type === "group") {
-        if (!req.body.owners.find(user._id)) {
+        if (!req.body.owners.find(req.body.userId)) {
             throw new Error("The owner must be also a member")
         }
         Chatroom.create({
@@ -97,6 +105,31 @@ export const addMessage = async (req:Request, res:Response, user: IUser) => {
         return c.save();
     }).then(uC => {/*TODO: sends a message over Websocket to inform other members*/})
 }
+
+export const addMessageSocket = async (user: IUser, chatroomId:string, content: string) => {
+    const check = await isMember(chatroomId, user)
+    if (!check) {
+        throw new Error("Only members can send messages")
+    }
+    let message: IMessage = {
+        sender: user._id,
+        created: Date.now(),
+        lastModified: Date.now(),
+        edited: false,
+        content: [{
+            type:"text",
+            value: content
+        }]
+    };
+    Chatroom.findById(chatroomId)
+    .then(c => {
+        c.messages.push(message);
+        return c.save();
+    }).then(uC => {
+        SocketService.sendAll(uC.members.map(u=>user._id), "pushedMessage", content)
+    })
+}
+
 
 export const editMessage = async (req:Request, res:Response, user: IUser) => {
     const check = await isMember(req.body.chatroom._id, user)

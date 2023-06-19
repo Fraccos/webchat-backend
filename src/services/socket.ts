@@ -7,11 +7,11 @@ import { IUser } from "../models/interfaces/users";
 
 
 export const usersSocket = new Map<string, Socket>();
-export const listenerMap = new Map<string, fnCallback>();
+export const listenersMap = new Map<string, socketCallback>();
 
 
 export type fnCallback = (...args: any[]) => void
-
+export type socketCallback = (socket:Socket,...args: any[]) => void
 
 export class SocketService {
     static init(server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>) {
@@ -25,8 +25,8 @@ export class SocketService {
         io.on("connection", (socket) => {
             const user = socket.data.user as IUser;
             usersSocket.set(user._id, socket);
-            [...listenerMap.keys()].forEach( key =>
-                socket.on(key, listenerMap.get(key))
+            [...listenersMap.keys()].forEach( key =>
+                socket.on(key, (...args:any) => listenersMap.get(key)(socket, ...args) )
             )
             console.log(`+ IN: ${user._id}`);
             socket.on('disconnect', function() {
@@ -36,8 +36,8 @@ export class SocketService {
         });
     }
 
-    static on(eventName: string, callback:fnCallback) {
-        listenerMap.set(eventName, callback);
+    static on(eventName: string, callback:socketCallback) {
+        listenersMap.set(eventName, callback);
     }   
 
     static sendAll(usersID: string[], event: string,message: string) {
