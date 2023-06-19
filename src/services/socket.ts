@@ -38,9 +38,9 @@ export class SocketService {
 
     static on(eventName: string, callback:fnCallback) {
         listenerMap.set(eventName, callback);
-    }
+    }   
 
-    static send(usersID: string[], event: string,message: string) {
+    static sendAll(usersID: string[], event: string,message: string) {
         usersID.forEach( id => {
             const socket = usersSocket.get(id);
             if (socket !== undefined) {
