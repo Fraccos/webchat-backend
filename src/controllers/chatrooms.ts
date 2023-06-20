@@ -13,7 +13,12 @@ const isMember = async (chatroomId: string, user: IUser) => Chatroom.findById(ch
     }
     return c.members.includes(user._id)
 });
-const isOwner = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => c.owners.includes(user._id));
+const isOwner = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => { 
+    if (c === null) {
+        return false;
+    }
+    return c.owners.includes(user._id)
+});
 
 export const createChatroom = (req:Request, res:Response) => {
     const opFields = {}
@@ -31,7 +36,10 @@ export const createChatroom = (req:Request, res:Response) => {
             members: req.body.members,
             timestamp: Date.now(),
             messages: []
-        }).then(u => res.json(u));
+        }).then(u => {
+            res.json(u);
+            /*TODO: sends a message over Websocket to inform other members*/
+        });
     } 
     else if (req.body.type === "group") {
         if (!req.body.owners.find(req.body.userId)) {
@@ -43,7 +51,10 @@ export const createChatroom = (req:Request, res:Response) => {
             members: req.body.members,
             timestamp: Date.now(),
             messages: []
-        }).then(u => res.json(u));
+        }).then(u => {
+            res.json(u);
+            /*TODO: sends a message over Websocket to inform other members*/
+        });
     }
 };
 
@@ -116,7 +127,7 @@ export const addMessageSocket = async (user: IUser, chatroomId:string, content: 
         created: Date.now(),
         lastModified: Date.now(),
         edited: false,
-        content: [{
+        content: [{ //TODO: send Object of type IMessageContent from frontend
             type:"text",
             value: content
         }]

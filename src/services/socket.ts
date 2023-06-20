@@ -40,11 +40,12 @@ export class SocketService {
         listenersMap.set(eventName, callback);
     }   
 
-    static sendAll(usersID: string[], event: string,message: string) {
+    static sendAll(usersID: string[], event: string,message: string) { //si può riscrivere usando il sistema built-in in socket.io di Rooms?
         usersID.forEach( id => {
             const socket = usersSocket.get(id);
             if (socket !== undefined) {
                 socket.send(event, message);
+                //socket.emit(event, JSONdata); per inviare un oggetto utilizzabile da React
             }
         })
     }
