@@ -1,3 +1,4 @@
+import { Friends } from "../models/friends";
 import { User } from "../models/users";
 import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 
@@ -25,10 +26,14 @@ export const registerUser = (req:Request, res:Response) => {
       new User({ 
         email: req.body.email, 
         username: req.body.username 
-      }), req.body.password, function (err, msg) {
+      }), req.body.password, function (err, user) {
         if (err) {
           res.send(err);
         } else {
+          Friends.create({
+            user: user._id,
+            friends: []
+          })
           res.send({ message: "Successful" });
         }
       }
