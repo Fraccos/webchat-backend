@@ -6,6 +6,7 @@ import { IChatroom, IMessage } from "../models/interfaces/chatrooms";
 import { isContext } from "vm";
 import { Socket } from "socket.io";
 import { SocketService } from "../services/socket";
+import { Document, Types } from "mongoose";
 
 const isMember = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => { 
     if (c === null) {
@@ -21,16 +22,10 @@ const isOwner = async (chatroomId: string, user: IUser) => Chatroom.findById(cha
 });
 
 export const createChatroom = (req:Request, res:Response) => {
-    const opFields = {}
     if (!req.body.members.find((id) => id === req.body.userId)) 
         throw new Error("Invalid chat")
         
     if (req.body.type === "single") {
-        if (req.body.members) {
-            if (req.body.members.length !== 2) {
-                throw new Error("A private chatroom must have just 2 members")
-            }
-        }
         Chatroom.create({
             type: req.body.type,
             members: req.body.members,
@@ -42,9 +37,9 @@ export const createChatroom = (req:Request, res:Response) => {
         });
     } 
     else if (req.body.type === "group") {
-        if (!req.body.owners.find(req.body.userId)) {
+        if (!req.body.owners.find(req.body.userId))
             throw new Error("The owner must be also a member")
-        }
+
         Chatroom.create({
             type: req.body.type,
             owners: req.body.owners,
@@ -58,6 +53,29 @@ export const createChatroom = (req:Request, res:Response) => {
     }
 };
 
+export const deleteChatroom = async (req:Request, res:Response, user: IUser) => {
+    // if (req.body.chatroom.type !== "single") {
+    //     throw new Error(`Can't add members to ${req.body.chatroom.type} chat`);
+    // }
+    // else if (req.body.chatroom.type === "group") {
+    //     const check = await isOwner(req.body.chatroom._id, user)
+    //     if (!check) {
+    //         throw new Error("Only owners can delete")
+    //     }
+    //     Chatroom.findById(req.body.chatroom)
+    //     .then(c => {
+    //         c.members.push(req.body.newMember);
+    //         return c.save();
+    //     }).then(uC => {/*TODO: sends a message over Websocket to inform other members*/})
+    // }
+    
+    if((req.body.chatroom.type === "group" && !isOwner(req.body.chatroom._id, user)) || (req.body.chatroom.type === "single" && !isMember(req.body.chatroom._id, user))) {
+        throw new Error("You're not a member of this chatroom");
+    }
+    Chatroom.findByIdAndRemove(req.body.chatroom).exec()
+    .then(dC => {/*TODO: sends a message over Websocket to inform other members*/})
+};
+
 export const addMember = async (req:Request, res:Response, user: IUser) => {
     if (req.body.chatroom.type === "single") {
         throw new Error("Can't add members to private chat")
@@ -67,36 +85,13 @@ export const addMember = async (req:Request, res:Response, user: IUser) => {
         if (!check) {
             throw new Error("Only owners can add to group")
         }
-        Chatroom.findById(req.body.chatroom)
+        Chatroom.findById(req.body.chatroom._id)
         .then(c => {
             c.members.push(req.body.newMember);
             return c.save();
         }).then(uC => {/*TODO: sends a message over Websocket to inform other members*/})
     }
-}
-
-export const deleteChatroom = async (req:Request, res:Response, user: IUser) => {
-    if (req.body.chatroom.type !== "single") {
-        throw new Error(`Can't add members to ${req.body.chatroom.type} chat`);
-    }
-    else if (req.body.chatroom.type === "group") {
-        const check = await isOwner(req.body.chatroom._id, user)
-        if (!check) {
-            throw new Error("Only owners can delete")
-        }
-        Chatroom.findById(req.body.chatroom)
-        .then(c => {
-            c.members.push(req.body.newMember);
-            return c.save();
-        }).then(uC => {/*TODO: sends a message over Websocket to inform other members*/})
-    }
-    
-    if((req.body.chatroom.type === "group" && !isOwner(req.body.chatroom._id, user)) || (req.body.chatroom.type === "single" && !isMember(req.body.chatroom._id, user))) {
-        throw new Error("You're not a member of this chatroom");
-    }
-    Chatroom.findByIdAndRemove(req.body.chatroom).exec()
-    .then(dC => {/*TODO: sends a message over Websocket to inform other members*/})
-}
+};
 
 export const addMessage = async (req:Request, res:Response, user: IUser) => {
     const check = await isMember(req.body.chatroom._id, user)
@@ -147,19 +142,16 @@ export const editMessage = async (req:Request, res:Response, user: IUser) => {
     if (!check) {
         throw new Error("Only members can send messages")
     }
-    const oldMessage:IMessage = await Chatroom.findById(req.body.msgId);
-    if (oldMessage.sender !== user._id) {
-        throw new Error("You can edit only your message")
-    }
-    let message: IMessage = {
-        ...oldMessage,
-        lastModified: Date.now(),
-        edited: true,
-        content: [req.body.message]
-    };
-    Chatroom.findById(req.body.chatroom)
+    let message: IMessage;
+    Chatroom.findById(req.body.chatroom._id)
     .then(c => {
-        c.messages.push(message);
+        let messages = c.messages as Types.DocumentArray<IMessage>;
+        message = messages.id(req.body.message._id);
+        if (message.sender !== user._id)
+            throw new Error("You can edit only your message");
+        message.lastModified = Date.now();
+        message.edited = true;
+        message.content = req.body.message.content
         return c.save();
     }).then(uC => {/*TODO: sends a message over Websocket to inform other members*/})
 }

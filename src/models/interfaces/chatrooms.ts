@@ -1,4 +1,5 @@
-import { HydratedArraySubdocument, ObjectId } from "mongoose"
+import { Document } from "mongoose"
+import { IUser } from "./users"
 
 export interface IMessageContent {
     type: string,
@@ -6,7 +7,7 @@ export interface IMessageContent {
 }
 
 export interface IMessage {
-    sender: {type: ObjectId, ref: "User"},
+    sender: IUser["_id"],
     created: Number,
     lastModified: Number,
     readed?: Date,
@@ -14,11 +15,11 @@ export interface IMessage {
     content: IMessageContent[]
 }
 
-export interface IChatroom {
+export interface IChatroom extends Document {
     name?: string,
     type: string,
-    owners?:  [{type: ObjectId, ref: "User"}],
-    members: [{type: ObjectId, ref: "User"}],
+    owners?:  [IUser["_id"]],
+    members: [IUser["_id"]],
     messages: IMessage[]
 }
  
