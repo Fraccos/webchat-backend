@@ -1,4 +1,4 @@
-import { ObjectId, Types } from "mongoose";
+import { Document, ObjectId, Types } from "mongoose";
 
 export interface IFriends {
     user: ObjectId,
