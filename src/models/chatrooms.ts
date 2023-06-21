@@ -31,12 +31,19 @@ const chatroomSchema = new Schema<IChatroom, ChatroomModelType>({
     members: [{type: Types.ObjectId, ref: "User", required: true}],
     messages: [messageSchema]
 });
+/*
 chatroomSchema.pre("save", function() {
     if (this.type === "single") {
-        if ((this.members.length as Number) !== 2)
+        if ((this.members.length as Number) !== 2) {
             throw new Error("Invalid number of members for a single chatroom");
-        if (Chatroom.exists({type:"single", members:this.members}))
-            throw new Error("Already exists a private chatroom with those members")
+        }
+        Chatroom.findOne({type:"single", members:this.members}).then( (found) =>
+            {
+                if (found) {
+                    throw new Error("Already exists a private chatroom with those members")
+                }
+            })
+            
     }
     if (this.type === "group") {
         if (this.owners === undefined || this.owners.length < 1 ) {
@@ -44,5 +51,5 @@ chatroomSchema.pre("save", function() {
         }
     }
 })
-
+*/
 export const Chatroom = model<IChatroom>("Chatroom", chatroomSchema);

@@ -5,5 +5,4 @@ import { Request,  Response} from "express";
 export const chatroomsRouter = express.Router();
 
 chatroomsRouter.use(AuthService.isValid);
-chatroomsRouter.get("/", (req:Request, res:Response) => res.json(req.user))
 chatroomsRouter.post("/newChat", createChatroom)

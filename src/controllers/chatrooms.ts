@@ -1,12 +1,18 @@
 import { User } from "../models/users";
 import { Chatroom } from "../models/chatrooms";
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { IUser } from "../models/interfaces/users";
 import { IChatroom, IMessage } from "../models/interfaces/chatrooms";
 import { isContext } from "vm";
 import { Socket } from "socket.io";
 import { SocketService } from "../services/socket";
 import { Document, Types } from "mongoose";
+
+
+interface AuthenticatedRequest extends Request {
+    user?: IUser;
+}
+  
 
 const isMember = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => { 
     if (c === null) {
@@ -21,35 +27,56 @@ const isOwner = async (chatroomId: string, user: IUser) => Chatroom.findById(cha
     return c.owners.includes(user._id)
 });
 
-export const createChatroom = (req:Request, res:Response) => {
-    if (!req.body.members.find((id) => id === req.body.userId)) 
-        throw new Error("Invalid chat")
-        
+export const createChatroom = async (req:Request, res:Response, next: NextFunction) => {
+    const user = req.user as IUser;
+    const userId = user._id.toString();
+    const members = req.body.members.sort();
+    if (!req.body.members.includes(userId)) {
+        next(new Error("Invalid chat"))
+        return;
+    }
     if (req.body.type === "single") {
+        if (members.length !== 2) {
+            next(new Error("Invalid number of members for a single chatroom"));
+            return;
+        }
+        try {
+            const found = await Chatroom.findOne({type:"single", members:members})
+            if (found) {
+                next(new Error("Already exists a single chatroom for those members"));
+                return;
+            }
+        }
+        catch (e) {
+            console.error(e);
+        }
         Chatroom.create({
             type: req.body.type,
-            members: req.body.members,
+            members: members,
             timestamp: Date.now(),
             messages: []
         }).then(u => {
             res.json(u);
             /*TODO: sends a message over Websocket to inform other members*/
-        });
-    } 
+        }).catch(next);
+    }
     else if (req.body.type === "group") {
         if (!req.body.owners.find(req.body.userId))
-            throw new Error("The owner must be also a member")
-
-        Chatroom.create({
-            type: req.body.type,
-            owners: req.body.owners,
-            members: req.body.members,
-            timestamp: Date.now(),
-            messages: []
-        }).then(u => {
-            res.json(u);
-            /*TODO: sends a message over Websocket to inform other members*/
-        });
+            next(new Error("The owner must be also a member")) 
+        else if (req.body.owners === undefined || !req.body.owners.includes(userId) ) 
+            next(new Error("Every group must have at least one owner"))
+        else {
+            Chatroom.create({
+                type: req.body.type,
+                owners: req.body.owners,
+                members: req.body.members,
+                timestamp: Date.now(),
+                messages: []
+            }).then(u => {
+                res.json(u);
+                /*TODO: sends a message over Websocket to inform other members*/
+            }).catch(next);
+        }
     }
 };
 
