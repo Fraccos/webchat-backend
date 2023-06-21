@@ -1,7 +1,8 @@
 import { getUserById, getUserByUsername, registerUser } from "../controllers/users";
 import express from "express";
 import AuthService from "../services/auth";
-
+import passport from "passport";
+import { IUser } from "../models/interfaces/users";
 
 export const usersRouter = express.Router();
 
@@ -10,11 +11,8 @@ usersRouter.get('/', (req, res) => {
 });
 
 usersRouter.post("/register", registerUser)
-usersRouter.post('/login', AuthService.login)
+usersRouter.post('/login', AuthService.login);
 
-
-//usersRouter.post('/add', addUser);
-//usersRouter.use(AuthService.expressJWT)
 usersRouter.use(AuthService.isValid)
 usersRouter.get('/byUsername/:username', getUserByUsername);
 

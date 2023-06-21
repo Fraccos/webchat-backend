@@ -1,13 +1,13 @@
 import express, { Application } from "express";
-import { sessionSK } from "../Environment";
+import { dbUrl, sessionSK } from "../Environment";
 import expressSession from "express-session";
 import passportLocal from "passport-local";
 import passport from "passport";
 import { User } from "../models/users";
-
+import MongoStore  from "connect-mongo";
 import { Request, Response, NextFunction } from "express";
 import { IUser } from "../models/interfaces/users";
-
+import mongoose from "mongoose";
 import jsonWebToken, { JwtPayload } from "jsonwebtoken";
 import { Socket } from "socket.io";
 
@@ -22,7 +22,10 @@ export default class AuthService {
 
   init(): void {
     const LocalStrategy = passportLocal.Strategy;
-    this.app.use(expressSession({ secret: sessionSK }));
+    this.app.use(expressSession({ secret: sessionSK,
+      saveUninitialized: true,
+      resave: false,
+      store: new MongoStore({ mongoUrl: dbUrl }) }));
     this.app.use(passport.initialize());
     this.app.use(passport.session());
     passport.use(new LocalStrategy(User.authenticate()));
@@ -40,16 +43,21 @@ export default class AuthService {
   static login(req: Request, res: Response, next: NextFunction) {
     passport.authenticate("local", (errors: Error, user: IUser) => {
       if (user) {
-        let signedToken = jsonWebToken.sign(
-          {
-            data: user._id,
-          },
-          sessionSK,
-          { expiresIn: "1h" });
-        res.json({
-          success: true,
-          token: signedToken,
-        });
+        req.login(user, (loginErr)  => {
+            if (loginErr) {
+              res.send(loginErr);
+          }
+          let signedToken = jsonWebToken.sign(
+            {
+              data: user._id,
+            },
+            sessionSK,
+            { expiresIn: "1h" });
+          res.json({
+            success: true,
+            token: signedToken,
+          });
+        })
       } else
         res.json({
           success: false,
@@ -57,6 +65,10 @@ export default class AuthService {
         });
     })(req, res, next);
   }
+
+
+
+
 
   static expressJWT(req: Request, res: Response, next: NextFunction) {
     let token = req.headers.token as string;
