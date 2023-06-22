@@ -1,4 +1,5 @@
-import { ObjectId } from "mongoose"
+import { Document } from "mongoose"
+import { IUser } from "./users"
 
 export interface IMessageContent {
     type: string,
@@ -6,18 +7,19 @@ export interface IMessageContent {
 }
 
 export interface IMessage {
-    _id: ObjectId
-    sender: ObjectId,
-    timestamp: Date,
-    readed: boolean,
+    sender: IUser["_id"],
+    created: Date,
+    lastModified: Date,
+    readed?: Date,
     edited: boolean,
     content: IMessageContent[]
 }
 
-export interface IChatroom {
+export interface IChatroom extends Document {
     name?: string,
     type: string,
-    members: [{type: ObjectId, ref: "User"}],
-    timestamp: Date,
+    owners?:  [IUser["_id"]],
+    members: [IUser["_id"]],
     messages: IMessage[]
 }
+ 

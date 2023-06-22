@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import { Schema, model,Types } from "mongoose";
 import { IUser } from "./interfaces/users";
 import passportLocalMongoose from "passport-local-mongoose"
 import { Document, PassportLocalModel, PassportLocalSchema } from "mongoose";
@@ -11,6 +11,9 @@ const userSchema = new Schema<IUser, UserModel>({
     username: {type: String, required: true, unique:true},
     email:  {type: String, required: true, unique:true},
     bio:  {type: String, required: false},
+    chats: [
+        {type: Types.ObjectId, ref: "Chatroom", required: true}
+    ],
     avatar:  {type: String},
 }) as PassportLocalSchema<IUser, UserModel>;
 
