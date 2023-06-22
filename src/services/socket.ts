@@ -24,15 +24,17 @@ export class SocketService {
     
         io.on("connection", (socket) => {
             const user = socket.data.user as IUser;
-            usersSocket.set(user._id, socket);
+            usersSocket.set(user._id.toString(), socket);
             [...listenersMap.keys()].forEach( key =>
                 socket.on(key, (...args:any) => listenersMap.get(key)(socket, ...args) )
             )
+            this.sendAll([user._id], "pushedMessage", "Benvenuto");
             console.log(`+ IN: ${user._id}`);
             socket.on('disconnect', function() {
                 usersSocket.delete(user._id)
                 console.log(`- OUT: ${user._id}`);
              });
+
         });
     }
 
@@ -40,12 +42,15 @@ export class SocketService {
         listenersMap.set(eventName, callback);
     }   
 
-    static sendAll(usersID: string[], event: string,message: string) { //si può riscrivere usando il sistema built-in in socket.io di Rooms?
+    static sendAll(usersID: string[], event: string, object: any) { //si può riscrivere usando il sistema built-in in socket.io di Rooms?
         usersID.forEach( id => {
             const socket = usersSocket.get(id);
             if (socket !== undefined) {
-                socket.send(event, message);
-                //socket.emit(event, JSONdata); per inviare un oggetto utilizzabile da React
+                //socket.send(event, ...args);
+                socket.emit(event, object); // per inviare un oggetto utilizzabile da React
+            }
+            else {
+                console.error(`not found: ${id}, the socket is ${socket} despite having: ${[...usersSocket.keys()]}`)
             }
         })
     }

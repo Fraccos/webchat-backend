@@ -55,8 +55,14 @@ export const createChatroom = async (req:Request, res:Response, next: NextFuncti
             members: members,
             timestamp: Date.now(),
             messages: []
-        }).then(u => {
-            res.json(u);
+        }).then(chatroom => {
+            User.updateMany(
+                { _id: { $in: members } },
+                { $push: {chats: chatroom._id}}
+            ).then (
+                () => res.json(chatroom)
+            )
+            
             /*TODO: sends a message over Websocket to inform other members*/
         }).catch(next);
     }
@@ -120,48 +126,54 @@ export const addMember = async (req:Request, res:Response, user: IUser) => {
     }
 };
 
-export const addMessage = async (req:Request, res:Response, user: IUser) => {
-    const check = await isMember(req.body.chatroom._id, user)
-    if (!check) {
-        throw new Error("Only members can send messages")
-    }
-    let message: IMessage = {
-        sender: user._id,
-        created: Date.now(),
-        lastModified: Date.now(),
-        edited: false,
-        content: [req.body.message]
-    };
-    Chatroom.findById(req.body.chatroom)
-    .then(c => {
-        c.messages.push(message);
-        return c.save();
-    }).then(uC => {/*TODO: sends a message over Websocket to inform other members*/})
+export const retriveLatestMessages = (req:Request, res:Response, next: NextFunction) => {
+    const user = req.user as IUser;
+    const userId = user._id.toString();
+    User.findById(userId).then(
+        (user:IUser) => {
+            Chatroom.find({
+                '_id': { $in: user.chats},
+                'messages.lastModified': 
+                {
+                    $gte: req.params.lastmessageiso
+                }
+            }).then(
+                chats => 
+                res.json(chats)
+            )
+        }
+    ) 
 }
 
-export const addMessageSocket = async (user: IUser, chatroomId:string, content: string) => {
-    const check = await isMember(chatroomId, user)
+export const addMessage = async (req:Request, res:Response, next: NextFunction) => {
+    const user = req.user as IUser;
+    const userId = user._id.toString();
+    const check = await isMember(req.body.chatroomId, user)
     if (!check) {
-        throw new Error("Only members can send messages")
+        next(Error("Only members can send messages"));
+        return;
     }
+    const date = new Date();
     let message: IMessage = {
         sender: user._id,
-        created: Date.now(),
-        lastModified: Date.now(),
+        created: date,
+        lastModified: date,
         edited: false,
-        content: [{ //TODO: send Object of type IMessageContent from frontend
-            type:"text",
-            value: content
-        }]
+        content: req.body.content
     };
-    Chatroom.findById(chatroomId)
+    Chatroom.findById(req.body.chatroomId)
     .then(c => {
         c.messages.push(message);
         return c.save();
     }).then(uC => {
-        SocketService.sendAll(uC.members.map(u=>user._id), "pushedMessage", content)
+        const dstArray = uC.members.map((u:IUser)=>u._id.toString());
+        SocketService.sendAll(dstArray, "pushedMessage", message)
+        res.json(
+            uC
+        )
     })
 }
+
 
 
 export const editMessage = async (req:Request, res:Response, user: IUser) => {
@@ -176,7 +188,7 @@ export const editMessage = async (req:Request, res:Response, user: IUser) => {
         message = messages.id(req.body.message._id);
         if (message.sender !== user._id)
             throw new Error("You can edit only your message");
-        message.lastModified = Date.now();
+        message.lastModified = new Date();
         message.edited = true;
         message.content = req.body.message.content
         return c.save();

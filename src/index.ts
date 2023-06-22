@@ -7,7 +7,6 @@ import AuthService from "./services/auth";
 import { Server, Socket } from "socket.io";
 import http from 'http';
 import { SocketService } from "./services/socket";
-import { addMessageSocket } from "./controllers/chatrooms";
 import { IUser } from "./models/interfaces/users";
 import { chatroomsRouter } from "./routes/chatrooms";
 import { Response, Request } from "express";
@@ -49,16 +48,8 @@ db.once("open", () => {
     console.log(`Connected to DB ${dbUrl}`);
     
     SocketService.init(server);
-    SocketService.on("onNewMessage", async (socket:Socket, chatroomId:string, msg:string) => {
-        const user = socket.data.user as IUser;
-        try {
-            await addMessageSocket(user, chatroomId,msg )
-        }
-        catch (error) {
-            console.error(error);
-        }
-        
-    }) 
+    
+
     server.listen(webPort, () => {
         console.log(`Listening on port ${webPort}`);
 

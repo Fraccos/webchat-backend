@@ -8,8 +8,8 @@ export interface IMessageContent {
 
 export interface IMessage {
     sender: IUser["_id"],
-    created: Number,
-    lastModified: Number,
+    created: Date,
+    lastModified: Date,
     readed?: Date,
     edited: boolean,
     content: IMessageContent[]

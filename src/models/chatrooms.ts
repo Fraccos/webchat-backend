@@ -13,8 +13,8 @@ type MessageOverrides = {
 type MessageModelType = Model<IMessage, {}, MessageOverrides>;
 const messageSchema = new Schema<IMessage, MessageModelType>({
     sender: {type: Types.ObjectId, ref: "User", required: true},
-    created: {type: Number, required: true},
-    lastModified: {type: Number, required: true},
+    created: {type: Date, required: true},
+    lastModified: {type: Date, required: true},
     readed: {type: Date, required: false},
     edited: {type: Boolean, required: true, default: false},
     content: [messageContentSchema]
