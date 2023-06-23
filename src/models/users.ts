@@ -17,6 +17,8 @@ const userSchema = new Schema<IUser, UserModel>({
     avatar:  {type: String},
 }) as PassportLocalSchema<IUser, UserModel>;
 
-userSchema.plugin(passportLocalMongoose);
+userSchema.plugin(passportLocalMongoose, {
+    usernameField: 'email'
+});
 
 export const User:UserModel = model<IUser>("User", userSchema);
