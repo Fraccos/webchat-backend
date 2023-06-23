@@ -1,6 +1,5 @@
-import { PassportLocalDocument} from "mongoose";
+import { ObjectId, PassportLocalDocument, Types} from "mongoose";
 import { IChatroom } from "./chatrooms";
-
 
 export interface IUser extends PassportLocalDocument {
     username: string,
@@ -8,4 +7,5 @@ export interface IUser extends PassportLocalDocument {
     bio?: string,
     chats: IChatroom
     avatar?: string,
+    friends: Types.Array<ObjectId>
 }
