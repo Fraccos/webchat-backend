@@ -5,10 +5,12 @@ export const addUser = (req:Request, res:Response) => {
     User.create({
         username: req.body.username,
         email: req.body.email,
+        chats: [],
         bio: req.body.bio,
         avatar: req.body.avatar
       }).then(u => res.json(u));
 };
+
 
 export const getUserById = (req:Request, res:Response) => {
     User.findById(req.params.userID)

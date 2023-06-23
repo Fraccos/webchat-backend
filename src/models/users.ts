@@ -6,13 +6,14 @@ import { Document, PassportLocalModel, PassportLocalSchema } from "mongoose";
 interface UserModelGeneric <T extends Document> extends PassportLocalModel<T> {}
 type UserModel = UserModelGeneric<IUser>;
 
-
 const userSchema = new Schema<IUser, UserModel>({
     username: {type: String, required: true, unique:true},
-    email:  {type: String, required: true, unique:true},
-    bio:  {type: String, required: false},
-    avatar:  {type: String, required: false},
+    email: {type: String, required: true, unique:true},
+    bio: {type: String, required: false},
+    avatar: {type: String, required: false},
     friends: [{type: Types.ObjectId, ref: "User", required: true}]
+    chats: [{type: Types.ObjectId, ref: "Chatroom", required: true}],
+    avatar: {type: String, required: false},
 }) as PassportLocalSchema<IUser, UserModel>;
 
 userSchema.plugin(passportLocalMongoose);
