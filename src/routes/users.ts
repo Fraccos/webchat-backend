@@ -1,4 +1,4 @@
-import { getFriends, getUserById, getUserByUsername, registerUser } from "../controllers/users";
+import { createJWT, getUserById, getUserByUsername, registerUser,getFriends } from "../controllers/users";
 import express from "express";
 import AuthService from "../services/auth";
 import passport from "passport";
@@ -15,5 +15,10 @@ usersRouter.post('/login', AuthService.login);
 
 usersRouter.use(AuthService.isValid)
 usersRouter.get('/byUsername/:username', getUserByUsername);
+
 usersRouter.get('/byUserID/:userID', getUserById);
+
+usersRouter.post('/jwt/create', createJWT);
+usersRouter.get('/byUserID/:userID', getUserById);
+
 usersRouter.get('/friends', getFriends);

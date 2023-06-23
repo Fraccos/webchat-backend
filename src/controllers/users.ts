@@ -1,5 +1,8 @@
 import { User } from "../models/users";
 import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import AuthService from "../services/auth";
+import { IUser } from "../models/interfaces/users";
+import passport from "passport";
 
 export const addUser = (req:Request, res:Response) => {
     User.create({
@@ -42,3 +45,18 @@ export const registerUser = (req:Request, res:Response) => {
       }
     )
 }
+
+export const createJWT = (req:Request, res:Response) => {
+  const user = req.user as IUser;
+  User.findById(user._id).then(
+    u => {
+      res.json(
+        {
+          token: AuthService.requestJWT(user._id),
+          user: u
+        }
+      ) 
+    }
+  )
+}
+

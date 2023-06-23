@@ -28,17 +28,29 @@ export default class AuthService {
       store: new MongoStore({ mongoUrl: dbUrl }) }));
     this.app.use(passport.initialize());
     this.app.use(passport.session());
-    passport.use(new LocalStrategy(User.authenticate()));
+    passport.use(new LocalStrategy({
+      usernameField: 'email'
+    }, User.authenticate()));
     passport.serializeUser(User.serializeUser());
     passport.deserializeUser(User.deserializeUser());
   }
 
   static isValid(req: Request, res: Response, next: NextFunction) {
     if (!req.isAuthenticated()) {
+      res.status(401);
       res.json({ type: "error", msg: "User not authenticated" });
     } else {
       next();
     }
+  }
+
+  static requestJWT(userId:any) {
+    return jsonWebToken.sign(
+      {
+        data: userId,
+      },
+      sessionSK,
+      { expiresIn: "1h" });
   }
   static login(req: Request, res: Response, next: NextFunction) {
     passport.authenticate("local", (errors: Error, user: IUser) => {
@@ -47,22 +59,22 @@ export default class AuthService {
             if (loginErr) {
               res.send(loginErr);
           }
-          let signedToken = jsonWebToken.sign(
-            {
-              data: user._id,
-            },
-            sessionSK,
-            { expiresIn: "1h" });
+          let signedToken = AuthService.requestJWT(user._id);
           res.json({
             success: true,
             token: signedToken,
+            user: {
+              _id : user._id,
+              chats: user.chats,
+              username: user.username,
+              email: user.email
+            }
           });
         })
-      } else
-        res.json({
-          success: false,
-          message: "Could not authenticate user.",
-        });
+      } else {
+        next(new Error("Could not authenticate user."));
+        return;
+      }
     })(req, res, next);
   }
 
