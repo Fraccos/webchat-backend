@@ -1,4 +1,3 @@
-import { Friends } from "../models/friends";
 import { User } from "../models/users";
 import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 
@@ -21,19 +20,21 @@ export const getUserByUsername = (req:Request, res:Response) => {
     .then(u => res.json(u));
 };
 
+export const getFriends = (req: Request, res: Response) => {
+  User.findById(req.body.userID)
+  .then(u => res.json(u.friends))
+}
+
 export const registerUser = (req:Request, res:Response) => {
     User.register(
       new User({ 
         email: req.body.email, 
-        username: req.body.username 
+        username: req.body.username,
+        friends: [] 
       }), req.body.password, function (err, user) {
         if (err) {
           res.send(err);
         } else {
-          Friends.create({
-            user: user._id,
-            friends: []
-          })
           res.send({ message: "Successful" });
         }
       }

@@ -8,9 +8,14 @@ const friendshipRequestSchema = new Schema<IFriendshipRequest>({
     message: {type: String, required: true}
 })
 
-friendshipRequestSchema.pre("save", function() {
-    if (FriendshipRequests.exists({sender: this.sender, receiver: this.receiver}))
-        throw new Error("There is another request pending for this user");
+friendshipRequestSchema.pre("save", function(next) {
+    FriendshipRequests.exists({sender: this.sender, receiver: this.receiver})
+    .then(r => {
+        if (r === null)
+            throw new Error("There is already a request pending for this user");
+        else
+            next();
+    })
 })
 
 export const FriendshipRequests = model<IFriendshipRequest>("FriendshipRequest", friendshipRequestSchema);

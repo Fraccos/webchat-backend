@@ -1,4 +1,4 @@
-import { PassportLocalDocument} from "mongoose";
+import { ObjectId, PassportLocalDocument, Types} from "mongoose";
 
 
 export interface IUser extends PassportLocalDocument {
@@ -6,4 +6,5 @@ export interface IUser extends PassportLocalDocument {
     email: string,
     bio?: string,
     avatar?: string,
+    friends: Types.Array<ObjectId>
 }

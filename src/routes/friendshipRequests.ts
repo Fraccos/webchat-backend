@@ -1,8 +1,8 @@
 import express from "express";
 import AuthService from "../services/auth";
-import { acceptFriendshipRequest, getFriends, rejectFriendshipRequest, sendFriendshipRequest } from "../controllers/friends";
+import { acceptFriendshipRequest, rejectFriendshipRequest, sendFriendshipRequest } from "../controllers/friendshipRequests";
 
-const friendsRouter = express.Router();
+export const friendsRouter = express.Router();
 
 friendsRouter.get('/', (req, res) => {
     res.json({message: "ok"});
@@ -10,5 +10,4 @@ friendsRouter.get('/', (req, res) => {
 .use(AuthService.isValid)
 .post("/sendRequest", sendFriendshipRequest)
 .post("/acceptRequest", acceptFriendshipRequest)
-.post("/rejectRequest", rejectFriendshipRequest)
-.get("/friends", getFriends);
+.post("/rejectRequest", rejectFriendshipRequest);

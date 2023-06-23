@@ -6,6 +6,7 @@ import { usersRouter } from "./routes/users";
 import AuthService from "./services/auth";
 import { Server, Socket } from "socket.io";
 import http from 'http';
+import { friendsRouter } from "./routes/friendshipRequests";
 
 const app = express();
 const server = http.createServer(app);
@@ -20,6 +21,7 @@ authService.init()
 app.use(express.json())
 .use(cors())
 .use('/users', usersRouter)
+.use("/friends", friendsRouter)
 .get('/', (req, res) => {
     res.json({message: "ok"});
 })
