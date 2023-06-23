@@ -25,9 +25,15 @@ export default class AuthService {
     this.app.use(expressSession({ secret: sessionSK,
       saveUninitialized: true,
       resave: false,
+      cookie: {
+        secure: true,
+        sameSite: "none"
+      },
       store: new MongoStore({ mongoUrl: dbUrl }) }));
     this.app.use(passport.initialize());
-    this.app.use(passport.session());
+    this.app.use(passport.session(
+      
+    ));
     passport.use(new LocalStrategy({
       usernameField: 'email'
     }, User.authenticate()));
