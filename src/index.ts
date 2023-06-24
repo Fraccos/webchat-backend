@@ -2,14 +2,12 @@ import { dbUrl, webPort } from "./Environment";
 import express, { NextFunction } from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import { Server, Socket } from "socket.io";
 import http from 'http';
 import { Response, Request } from "express";
 
 import { usersRouter } from "./routes/users";
 import { friendsRouter } from "./routes/friendshipRequests";
 import { chatroomsRouter } from "./routes/chatrooms";
-import { IUser } from "./models/interfaces/users";
 import AuthService from "./services/auth";
 import { SocketService } from "./services/socket";
 
@@ -42,9 +40,6 @@ app.use(express.json())
 .get('/', (req, res) => {
     res.json({message: "ok"});
 })
-.get("/login", (req, res) => {
-    res.json({msg: "not authenticated"});
-});
 
 
 db.once("open", () => {

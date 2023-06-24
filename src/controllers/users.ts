@@ -1,18 +1,7 @@
 import { User } from "../models/users";
-import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import { Request, Response } from 'express';
 import AuthService from "../services/auth";
 import { IUser } from "../models/interfaces/users";
-import passport from "passport";
-
-export const addUser = (req:Request, res:Response) => {
-    User.create({
-        username: req.body.username,
-        email: req.body.email,
-        chats: [],
-        bio: req.body.bio,
-        avatar: req.body.avatar
-      }).then(u => res.json(u));
-};
 
 
 export const getUserById = (req:Request, res:Response) => {
@@ -24,11 +13,6 @@ export const getUserByUsername = (req:Request, res:Response) => {
     User.findOne({username: req.params.username})
     .then(u => res.json(u));
 };
-
-export const getFriends = (req: Request, res: Response) => {
-  User.findById(req.body.userID)
-  .then(u => res.json(u.friends))
-}
 
 export const registerUser = (req:Request, res:Response) => {
     User.register(

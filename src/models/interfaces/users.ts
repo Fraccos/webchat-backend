@@ -5,7 +5,7 @@ export interface IUser extends PassportLocalDocument {
     username: string,
     email: string,
     bio?: string,
-    chats: IChatroom
+    chats: Types.Array<IChatroom["_id"]>,
     avatar?: string,
-    friends: Types.Array<ObjectId>
+    friends: Types.Array<IChatroom["_id"]>
 }

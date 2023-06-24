@@ -11,9 +11,8 @@ const userSchema = new Schema<IUser, UserModel>({
     email: {type: String, required: true, unique:true},
     bio: {type: String, required: false},
     avatar: {type: String, required: false},
-    friends: [{type: Types.ObjectId, ref: "User", required: true}]
-    chats: [{type: Types.ObjectId, ref: "Chatroom", required: true}],
-    avatar: {type: String, required: false},
+    friends: [{type: Types.ObjectId, ref: "User", required: true}],
+    chats: [{type: Types.ObjectId, ref: "Chatroom", required: true}]
 }) as PassportLocalSchema<IUser, UserModel>;
 
 userSchema.plugin(passportLocalMongoose, {
