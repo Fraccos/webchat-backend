@@ -47,10 +47,14 @@ export const acceptFriendshipRequest = (req: Request, res: Response) => {
 }
 
 export const rejectFriendshipRequest = (req: Request, res: Response) => {
-    FriendshipRequests.findByIdAndRemove(req.body.requestID)
+    FriendshipRequests.findById(req.body.requestID)
     .then(fR => {
-        res.json({status: "rejected", fR})
-        /*TODO: Block sender? */
-        /*TODO: notify sender? (online and offline)*/
+        fR.rejected = true;
+        fR.save()
+        .then(uFR => {
+            res.json({status: "rejected", fR})
+            /*TODO: Block sender? */
+            /*TODO: notify sender? (online and offline)*/
+        })
     })
 }

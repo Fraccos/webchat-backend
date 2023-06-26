@@ -1,8 +1,9 @@
-import { ObjectId } from "mongoose";
+import { IUser } from "./users";
 
 export interface IFriendshipRequest {
-    sender: ObjectId,
-    receiver: ObjectId,
-    timestamp: Number,
+    sender: IUser["_id"],
+    receiver: IUser["_id"],
+    timestamp: Date,
+    rejected: Boolean,
     message: String
 }

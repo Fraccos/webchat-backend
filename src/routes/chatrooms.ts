@@ -1,13 +1,14 @@
 import express from "express";
 import AuthService from "../services/auth";
-import {addMember, addMessage, createChatroom, deleteChatroom, editMessage, retriveLatestMessages} from "../controllers/chatrooms";
-import { Request,  Response} from "express";
+import {addMember, addMessage, createChatroom, deleteChatroom, deleteMessage, editMessage, removeMember, retriveLatestMessages} from "../controllers/chatrooms";
 export const chatroomsRouter = express.Router();
 
-chatroomsRouter.use(AuthService.isValid);
-chatroomsRouter.post("/create", createChatroom);
-chatroomsRouter.delete("/delete", deleteChatroom);
-chatroomsRouter.post("/members/add", addMember);
-chatroomsRouter.post("/message/create", addMessage);
-chatroomsRouter.put("/message/update", editMessage);
-chatroomsRouter.get("/latestedited/:lastmessageiso", retriveLatestMessages)
+chatroomsRouter.use(AuthService.isValid)
+.post("/create", createChatroom)
+.delete("/delete", deleteChatroom)
+.post("/members/add", addMember)
+.delete("/members/remove", removeMember)
+.post("/message/create", addMessage)
+.put("/message/update", editMessage)
+.delete("/message/delete", deleteMessage)
+.get("/latestedited/:lastmessageiso", retriveLatestMessages);
