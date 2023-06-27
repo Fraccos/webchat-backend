@@ -10,4 +10,4 @@ friendsRouter.get('/', (req, res) => {
 .use(AuthService.isValid)
 .post("/sendRequest", sendFriendshipRequest)
 .post("/acceptRequest", acceptFriendshipRequest)
-.post("/rejectRequest", rejectFriendshipRequest);
+.delete("/rejectRequest", rejectFriendshipRequest);

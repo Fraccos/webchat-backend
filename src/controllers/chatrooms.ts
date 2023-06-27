@@ -36,13 +36,12 @@ const pushMessage = (request: Request, response: Response, user: IUser, messageC
     chatroom.messages.push(message);
     chatroom.save().then(uC => {
         const dstArray = uC.members.map((u:IUser)=>u._id.toString());
-        SocketService.sendAll(dstArray, "pushedMessage", message);
-        response.json(uC)
+        SocketService.sendAll(dstArray, "pushedMessage", {id: uC._id, message: message});
+        response.sendStatus(200);
     })
 }
 const updateMessage = (request: Request, response: Response, next: NextFunction, messageContent: IMessageContent[]) => {
     const user = request.user as IUser;
-    let message: IMessage;
     Chatroom.findById(request.body.chatroomId)
     .then(c => {
         if (!c.members.includes(user._id)) {
@@ -51,7 +50,6 @@ const updateMessage = (request: Request, response: Response, next: NextFunction,
         }
         let messages = c.messages as Types.DocumentArray<IMessage>;
         const index = messages.findIndex(el => el._id.toString() === request.body.message.id)
-        //si potrebbe riscrivere usando messages.id(req.body.message.id) ?
         if (index >= 0) {
             if (messages[index].sender.toString() !== user._id.toString()) {
                 next(new Error(`You can edit only your message ${messages[index].sender} ${user._id}`));
@@ -62,6 +60,9 @@ const updateMessage = (request: Request, response: Response, next: NextFunction,
             msg.edited = true;
             msg.content = messageContent;
             messages.push(msg);
+
+            const dstArray = c.members.map((u:IUser)=>u._id.toString());
+            SocketService.sendAll(dstArray, "editedMessage", {id: c._id, message: msg});
             return c.save();
         }
         else {
@@ -69,8 +70,7 @@ const updateMessage = (request: Request, response: Response, next: NextFunction,
             return;
         }  
     }).then(uC => {
-        response.json(uC);
-        /*TODO: sends a message over Websocket to inform other members*/
+        response.sendStatus(200);
     })
 }
 

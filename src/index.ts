@@ -34,7 +34,7 @@ authService.init()
 
 
 app.use(express.json())
-.use(cors({credentials: true, origin: true}))
+    .use(cors({credentials: true, origin: true}))
     .use('/users', usersRouter)
     .use("/friends", friendsRouter)
     .use('/chats', chatroomsRouter)
