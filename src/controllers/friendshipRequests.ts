@@ -1,6 +1,7 @@
 import { FriendshipRequests } from "../models/friendshipRequests"
 import { Request, Response } from 'express';
 import { User } from "../models/users";
+import { SocketService } from "../services/socket";
 
 
 const acceptRequest = (query: any, request: Request, response: Response) => {
@@ -16,8 +17,9 @@ const acceptRequest = (query: any, request: Request, response: Response) => {
             u.friends.push(fR.sender)
             u.save()
         });
-        response.json({status: "accepted", fR});
-        /*TODO: notify sender & receiver (online and offline)*/
+        const dstArray = [fR.sender.toString(), fR.receiver.toString()];
+        SocketService.sendAll(dstArray, "newFriend", fR);
+        response.sendStatus(200);
     })
 }
 
@@ -33,7 +35,7 @@ export const sendFriendshipRequest = (req: Request, res: Response) => {
                 message: req.body.message
             }).then(fR => {
                 res.json({status: "created", fR});
-                //TODO: notify receiver (online and offline)
+                SocketService.sendAll([fR.receiver.toString()], "newFriendshipRequest", fR)
             });
         }
         else {
