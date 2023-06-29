@@ -163,7 +163,7 @@ export const deleteChatroom = async (req:Request, res:Response, next: NextFuncti
             { $pull: {chats: dC._id}}
         ).then (() => {
             const dstArray = dC.members.map((u:IUser)=>u._id.toString());
-            SocketService.sendAll(dstArray, "chatroomDeleted", {id: dC._id}, true);
+            SocketService.sendAll(dstArray, "chatroomDeleted", {id: dC._id});
             res.sendStatus(200);
         });
     })
