@@ -31,7 +31,7 @@ export const sendFriendshipRequest = (req: Request, res: Response) => {
             FriendshipRequests.create({
                 sender: req.body.sender,
                 receiver: req.body.receiver,
-                timestamp: Date.now(),
+                timestamp: new Date(),
                 message: req.body.message
             }).then(fR => {
                 res.json({status: "created", fR});

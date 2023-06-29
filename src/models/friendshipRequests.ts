@@ -4,7 +4,7 @@ import { IFriendshipRequest } from "./interfaces/friendshipRequests";
 const friendshipRequestSchema = new Schema<IFriendshipRequest>({
     sender: {type: Types.ObjectId, ref: "User", required: true},
     receiver: {type: Types.ObjectId, ref: "User", required: true},
-    timestamp: {type: Date, required: true, default: new Date},
+    timestamp: {type: Date, required: true, default: new Date()},
     rejected: {type: Boolean, required: true, default: false},
     message: {type: String, required: true}
 })

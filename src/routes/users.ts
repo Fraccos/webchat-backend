@@ -1,17 +1,16 @@
-import { createJWT, getUserById, getUserByUsername, registerUser, removeFriend } from "../controllers/users";
+import { createJWT, getUserById, getUserByUsername, registerUser, removeFriend, searchUsers } from "../controllers/users";
 import express from "express";
 import AuthService from "../services/auth";
 
 export const usersRouter = express.Router();
 
-usersRouter.get('/', (req, res) => {
-    res.json({message: "ok"});
-})
-.post("/register", registerUser)
+usersRouter.post("/register", registerUser)
 .post('/login', AuthService.login)
 
 .use(AuthService.isValid)
 .get('/byUsername/:username', getUserByUsername)
+
+.get('/search', searchUsers)
 
 .get('/byUserID/:userID', getUserById)
 

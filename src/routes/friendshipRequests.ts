@@ -4,10 +4,7 @@ import { acceptFriendshipRequest, rejectFriendshipRequest, sendFriendshipRequest
 
 export const friendsRouter = express.Router();
 
-friendsRouter.get('/', (req, res) => {
-    res.json({message: "ok"});
-})
-.use(AuthService.isValid)
-.post("/sendRequest", sendFriendshipRequest)
-.post("/acceptRequest", acceptFriendshipRequest)
-.delete("/rejectRequest", rejectFriendshipRequest);
+friendsRouter.use(AuthService.isValid)
+.post("/sendrequest", sendFriendshipRequest)
+.post("/acceptrequest", acceptFriendshipRequest)
+.delete("/rejectrequest", rejectFriendshipRequest);

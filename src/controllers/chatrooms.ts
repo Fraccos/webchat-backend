@@ -4,7 +4,7 @@ import { NextFunction, Request, Response } from 'express';
 import { IUser } from "../models/interfaces/users";
 import { IChatroom, IMessage, IMessageContent } from "../models/interfaces/chatrooms";
 import { SocketService } from "../services/socket";
-import { ObjectId, Types } from "mongoose";
+import { Types } from "mongoose";
 
 
 const isMember = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => { 
@@ -37,7 +37,7 @@ const pushMessage = (request: Request, response: Response, user: IUser, messageC
 }
 const updateMessage = (request: Request, response: Response, next: NextFunction, messageContent: IMessageContent[]) => {
     const user = request.user as IUser;
-    Chatroom.findById(request.body.chatroomId)
+    Chatroom.findById(request.body.id)
     .then(c => {
         if (!c.members.includes(user._id)) {
             next(new Error("Only members can send messages"))
@@ -47,7 +47,7 @@ const updateMessage = (request: Request, response: Response, next: NextFunction,
         const index = messages.findIndex(el => el._id.toString() === request.body.message.id)
         if (index >= 0) {
             if (messages[index].sender.toString() !== user._id.toString()) {
-                next(new Error(`You can edit only your message ${messages[index].sender} ${user._id}`));
+                next(new Error("You can edit only your messages"));
                 return;
             }
             const [msg] = messages.splice(index, 1);
@@ -69,10 +69,13 @@ const updateMessage = (request: Request, response: Response, next: NextFunction,
     })
 }
 
+
 export const createChatroom = async (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
-    const members = req.body.members.sort();
+    const friends: Array<string> = user.friends.map(el => el.toString());
+    const members: Array<string> = req.body.members.sort();
+    const friendsMembers: Array<string> = members.filter(el => !friends.includes(el));
     if (!req.body.members.includes(userId)) {
         next(new Error("Invalid chat"))
         return;
@@ -85,7 +88,7 @@ export const createChatroom = async (req:Request, res:Response, next: NextFuncti
         try {
             const found = await Chatroom.findOne({type:"single", members:members})
             if (found) {
-                next(new Error("Already exists a single chatroom for those members"));
+                next(new Error("Already exists a single chatroom with those members"));
                 return;
             }
         }
@@ -98,18 +101,29 @@ export const createChatroom = async (req:Request, res:Response, next: NextFuncti
             timestamp: Date.now(),
             messages: []
         }).then(chatroom => {
+            chatroom.members.forEach(el => chatroom.lastRead.set(el.toString(), new Date(0)));
+            chatroom.save();
             User.updateMany(
                 { _id: { $in: members } },
                 { $push: {chats: chatroom._id}}
             ).exec()
-            .then(() => pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} started a chat with you`}], chatroom))
+            .then(() => {
+                const dstArray = chatroom.members.map((u:IUser)=>u._id.toString());
+                SocketService.sendAll(dstArray, "chatroomCreated", chatroom, false);
+                pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} started a chat with you`}], chatroom);
+            })
         }).catch(next);
     }
     else if (req.body.type === "group") {
-        if (!req.body.owners.find(req.body.userId))
-            next(new Error("The owner must be also a member")) 
+        const membersOwners: Array<string> = req.body.owners.filter(el => !members.includes(el))
+        if (membersOwners.length > 0)
+            next(new Error("Owners must be also members")) 
         else if (req.body.owners === undefined || !req.body.owners.includes(userId) ) 
             next(new Error("Every group must have at least one owner"))
+        else if (friendsMembers.length > 0) 
+            next(new Error("You can only add friends to a group"))
+        else if (members.length > 15)
+            next(new Error("A group cannot have more than 15 members"))
         else {
             Chatroom.create({
                 type: req.body.type,
@@ -119,11 +133,17 @@ export const createChatroom = async (req:Request, res:Response, next: NextFuncti
                 timestamp: Date.now(),
                 messages: []
             }).then(chatroom => {
+                chatroom.members.forEach(el => chatroom.lastRead.set(el.toString(), new Date(0)));
+                chatroom.save();
                 User.updateMany(
                     { _id: { $in: members } },
                     { $push: {chats: chatroom._id}}
                 ).exec()
-                .then(() => pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} created group ${req.body.name}`}], chatroom))
+                .then(() => {
+                    const dstArray = chatroom.members.map((u:IUser)=>u._id.toString());
+                    SocketService.sendAll(dstArray, "chatroomCreated", chatroom, false);
+                    pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} created group ${req.body.name}`}], chatroom)
+                })
             }).catch(next);
         }
     }
@@ -132,36 +152,47 @@ export const createChatroom = async (req:Request, res:Response, next: NextFuncti
 export const deleteChatroom = async (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
-    if((req.body.chatroom.type === "group" && !isOwner(req.body.chatroom._id, user)) || (req.body.chatroom.type === "single" && !isMember(req.body.chatroom._id, user))) {
-        next(new Error("You're not a member of this chatroom"));
+    if((req.body.type === "group" && !isOwner(req.body.id, user)) || (req.body.type === "single" && !isMember(req.body.id, user))) {
+        next(new Error("You're not an owner of this chatroom"));
     }
-    Chatroom.findById(req.body.chatroom)
+    Chatroom.findById(req.body.id)
     .then(dC => {
         pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} deleted this chatroom`}], dC);
         User.updateMany(
             { _id: { $in: dC.members } },
             { $pull: {chats: dC._id}}
-        ).then (() => res.json(dC));
+        ).then (() => {
+            const dstArray = dC.members.map((u:IUser)=>u._id.toString());
+            SocketService.sendAll(dstArray, "chatroomDeleted", {id: dC._id}, true);
+            res.sendStatus(200);
+        });
     })
 };
 
 export const addMember = async (req:Request, res:Response, next:NextFunction) => {
     const user = req.user as IUser;
-    Chatroom.findById(req.body.chatroomId)
+    Chatroom.findById(req.body.id)
         .then(c => {
             if (c.type === "single") {
                 throw new Error("Can't add members to private chat")
             }
             else if (c.type === "group") {
                 if (c.owners.includes(user._id)) {
-                    if (!user.friends.includes(req.body.newMember._id)) {
+                    if (!user.friends.includes(new Types.ObjectId(req.body.newMember.id))) {
                         next(new Error("Only friends can be addded to groups"));
                     }
-                    User.findByIdAndUpdate(req.body.newMember._id, { $push: {chats: c._id}})
-                    .then((updateUser) => {
-                        c.members.push(req.body.newMember._id);
+                    if (c.members.length >= 15) {
+                        next(new Error("A group cannot have more than 15 members"));
+                    }
+                    User.findByIdAndUpdate(req.body.newMember.id, { $push: {chats: c._id}})
+                    .then(() => {
+                        c.members.push(new Types.ObjectId(req.body.newMember.id));
+                        c.lastRead.set(req.body.newMember.id, new Date(0))
                         return c.save();
-                    }).then(uC => pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} added ${req.body.newMember.username}`}], uC))
+                    }).then(uC => {
+                        SocketService.sendAll([req.body.newMember.id], "addedToChatroom", {id: c._id, name: c.name}, false)
+                        pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} added ${req.body.newMember.username}`}], uC);
+                    })
                 }
                 else {
                     next(new Error("Only owners can add members to groups"));
@@ -173,20 +204,21 @@ export const addMember = async (req:Request, res:Response, next:NextFunction) =>
 
 export const removeMember = async (req:Request, res:Response, next:NextFunction) => {
     const user = req.user as IUser;
-    Chatroom.findById(req.body.chatroomId)
+    Chatroom.findById(req.body.id)
         .then(c => {
             if (c.type === "single") {
                 throw new Error("Can't remove members from private chat")
             }
             else if (c.type === "group") {
                 if (c.owners.includes(user._id)) {
-                    User.findByIdAndUpdate(req.body.oldMember._id, { $pop: {chats: c._id}})
-                    .then((updateUser) => {
-                        c.members = c.members.filter(el => el !== req.body.oldMember._id) as [IChatroom["_id"]]
+                    User.findByIdAndUpdate(req.body.oldMember.id, { $pop: {chats: c._id}})
+                    .then(() => {
+                        c.members = c.members.filter(el => el.toString() !== req.body.oldMember.id) as [IChatroom["_id"]];
+                        c.lastRead.delete(req.body.oldMember.id);
                         return c.save();
                     }).then(uC => {
                         pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} removed ${req.body.oldMember.username}`}], uC);
-                        SocketService.sendAll([req.body.oldMember._id], "removedFromChatroom", {chatroom: uC._id});
+                        SocketService.sendAll([req.body.oldMember._id], "removedFromChatroom", {id: uC._id});
                     })
                 }
                 else {
@@ -205,11 +237,15 @@ export const retriveLatestMessages = (req:Request, res:Response, next: NextFunct
                 { $match: {_id: { $in: user.chats}}},
                 { $unwind: '$messages'},
                 { $match: {'messages.lastModified': {$gte: new Date(req.params.lastmessageiso)}}},
-                { $group: {_id: '$_id', name: {$first: '$name'}, members: {$first: '$members'}, messages: {$push: '$messages'}}}
+                { $group: {_id: '$_id', 
+                    name: {$first: '$name'}, 
+                    members: {$first: '$members'}, 
+                    lastRead: {$first: '$lastRead'}, 
+                    messages: {$push: '$messages'}}}
             ]).then(async (obj) => {
                 for await (const c of obj) {
                     if (c.name === null) {
-                        await User.findById(c.members.find(el => el !== user._id)).then(u => c.name = u.username);
+                        await User.findById(c.members.find(el => el.toString() !== userId)).then(u => c.name = u.username);
                     }
                 }
                 res.json(obj);
@@ -221,7 +257,7 @@ export const retriveLatestMessages = (req:Request, res:Response, next: NextFunct
 export const retrieveMessages = (req:Request<{id: string}, {}, {}, {page: number}>, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
-    const pageSize = 2;
+    const pageSize = 30;
     Chatroom.aggregate([
         {$match: {_id: new Types.ObjectId(req.params.id)}},
         {$unwind: '$messages'},
@@ -235,12 +271,12 @@ export const retrieveMessages = (req:Request<{id: string}, {}, {}, {page: number
 export const addMessage = async (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
-    const check = await isMember(req.body.chatroomId, user)
+    const check = await isMember(req.body.id, user)
     if (!check) {
         next(Error("Only members can send messages"));
         return;
     }
-    Chatroom.findById(req.body.chatroomId)
+    Chatroom.findById(req.body.id)
     .then(c => pushMessage(req, res, user, req.body.message.content as IMessageContent[], c));
 }
 
@@ -250,4 +286,17 @@ export const editMessage = async (req:Request, res:Response, next:NextFunction) 
 
 export const deleteMessage = async (req:Request, res:Response, next:NextFunction) => {
     updateMessage(req, res, next, [{type: "deleted", value: ""}]);
+}
+
+export const updateLastRead = async (req:Request, res:Response, next:NextFunction) => {
+    const user = req.user as IUser;
+    const userId = user._id.toString();
+    Chatroom.findById(req.body.id)
+    .then(c => {
+        c.lastRead.set(userId, new Date());
+        return c.save()
+    }).then(uC => {
+        SocketService.sendAll(uC.members, "updatedLastRead", uC.lastRead, false);
+        res.sendStatus(200);
+    })
 }

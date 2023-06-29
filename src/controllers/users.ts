@@ -31,6 +31,11 @@ export const removeFriend = (req: Request, res: Response) => {
   });
 };
 
+export const searchUsers = (req:Request, res:Response) => {
+  User.find({"username": {"$regex": req.query.q, "$options": "i"}})
+  .then(u => res.json(u));
+};
+
 export const registerUser = (req:Request, res:Response) => {
   User.register(
     new User({
