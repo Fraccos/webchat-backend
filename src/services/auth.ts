@@ -11,7 +11,6 @@ import mongoose from "mongoose";
 import jsonWebToken, { JwtPayload } from "jsonwebtoken";
 import { Socket } from "socket.io";
 
-type nextFnSocket = (err?: Error) => void
 
 export default class AuthService {
   private app: Application;

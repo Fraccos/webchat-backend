@@ -55,8 +55,6 @@ export const rejectFriendshipRequest = (req: Request, res: Response) => {
         fR.save()
         .then(uFR => {
             res.json({status: "rejected", fR})
-            /*TODO: Block sender? */
-            /*TODO: notify sender? (online and offline)*/
         })
     })
 }

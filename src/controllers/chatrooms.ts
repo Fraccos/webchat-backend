@@ -4,13 +4,8 @@ import { NextFunction, Request, Response } from 'express';
 import { IUser } from "../models/interfaces/users";
 import { IChatroom, IMessage, IMessageContent } from "../models/interfaces/chatrooms";
 import { SocketService } from "../services/socket";
-import { Types } from "mongoose";
+import { ObjectId, Types } from "mongoose";
 
-
-interface AuthenticatedRequest extends Request {
-    user?: IUser;
-}
-  
 
 const isMember = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => { 
     if (c === null) {
@@ -36,7 +31,7 @@ const pushMessage = (request: Request, response: Response, user: IUser, messageC
     chatroom.messages.push(message);
     chatroom.save().then(uC => {
         const dstArray = uC.members.map((u:IUser)=>u._id.toString());
-        SocketService.sendAll(dstArray, "pushedMessage", {id: uC._id, message: message});
+        SocketService.sendAll(dstArray, "pushedMessage", {id: uC._id, message: message}, false);
         response.sendStatus(200);
     })
 }
@@ -62,7 +57,7 @@ const updateMessage = (request: Request, response: Response, next: NextFunction,
             messages.push(msg);
 
             const dstArray = c.members.map((u:IUser)=>u._id.toString());
-            SocketService.sendAll(dstArray, "editedMessage", {id: c._id, message: msg});
+            SocketService.sendAll(dstArray, "editedMessage", {id: c._id, message: msg}, false);
             return c.save();
         }
         else {
@@ -189,7 +184,10 @@ export const removeMember = async (req:Request, res:Response, next:NextFunction)
                     .then((updateUser) => {
                         c.members = c.members.filter(el => el !== req.body.oldMember._id) as [IChatroom["_id"]]
                         return c.save();
-                    }).then(uC => pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} removed ${req.body.oldMember.username}`}], uC))
+                    }).then(uC => {
+                        pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} removed ${req.body.oldMember.username}`}], uC);
+                        SocketService.sendAll([req.body.oldMember._id], "removedFromChatroom", {chatroom: uC._id});
+                    })
                 }
                 else {
                     next(new Error("Only owners can remove members from groups"));
@@ -202,18 +200,36 @@ export const removeMember = async (req:Request, res:Response, next:NextFunction)
 export const retriveLatestMessages = (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
-    User.findById(userId).then(
-        (user:IUser) => {
+    User.findById(userId).then((user:IUser) => {
             Chatroom.aggregate([
                 { $match: {_id: { $in: user.chats}}},
                 { $unwind: '$messages'},
                 { $match: {'messages.lastModified': {$gte: new Date(req.params.lastmessageiso)}}},
-                { $group: {_id: '$_id', messages: {$push: '$messages'}}}
-            ]).then(
-                (obj) => res.json(obj)
-            )
+                { $group: {_id: '$_id', name: {$first: '$name'}, members: {$first: '$members'}, messages: {$push: '$messages'}}}
+            ]).then(async (obj) => {
+                for await (const c of obj) {
+                    if (c.name === null) {
+                        await User.findById(c.members.find(el => el !== user._id)).then(u => c.name = u.username);
+                    }
+                }
+                res.json(obj);
+            })
         }
     ) 
+}
+
+export const retrieveMessages = (req:Request<{id: string}, {}, {}, {page: number}>, res:Response, next: NextFunction) => {
+    const user = req.user as IUser;
+    const userId = user._id.toString();
+    const pageSize = 2;
+    Chatroom.aggregate([
+        {$match: {_id: new Types.ObjectId(req.params.id)}},
+        {$unwind: '$messages'},
+        {$sort: {'messages.lastModified': -1}},
+        {$skip: (req.query.page * pageSize)},
+        {$limit: pageSize},
+        { $group: {_id: '$_id', messages: {$push: '$messages'}}}
+    ]).then(c => res.json(c));
 }
 
 export const addMessage = async (req:Request, res:Response, next: NextFunction) => {

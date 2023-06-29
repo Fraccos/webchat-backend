@@ -6,6 +6,7 @@ import { IUser } from "../models/interfaces/users";
 import { User } from "../models/users";
 import { Notification } from "../models/notifications";
 import mongoose, { Types } from "mongoose";
+import { socketPort } from "../Environment";
 
 
 
@@ -13,12 +14,11 @@ export const usersSocket = new Map<string, Socket>();
 export const listenersMap = new Map<string, socketCallback>();
 
 
-export type fnCallback = (...args: any[]) => void
 export type socketCallback = (socket:Socket,...args: any[]) => void
 
 export class SocketService {
     static init(server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>) {
-        const io = new Server(server, {
+        const io = new Server(socketPort, {
             cors: {
                 origin: '*'
             }
@@ -40,14 +40,14 @@ export class SocketService {
             })
             User.findById(user._id).then(u => {
                 const dstArray = u.friends.map((el: IUser) => el._id.toString()).filter((el: string) => usersSocket.has(el));
-                this.sendAll(dstArray, "friendOnline", {id: u._id}, false);
+                SocketService.sendAll(dstArray, "friendOnline", {id: u._id}, false);
             })
             socket.on('disconnect', function() {
                 usersSocket.delete(user._id);
                 console.log(`- OUT: ${user._id}`);
                 User.findById(user._id).then(u => {
                     const dstArray = u.friends.map((el: IUser) => el._id.toString()).filter((el: string) => usersSocket.has(el));
-                    this.sendAll(dstArray, "friendOffline", {id: u._id}, false);
+                    SocketService.sendAll(dstArray, "friendOffline", {id: u._id}, false);
                 })
              });
 
