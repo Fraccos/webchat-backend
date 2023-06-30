@@ -5,13 +5,13 @@ import { SocketService } from "../services/socket";
 import { IUser } from "../models/interfaces/users";
 
 /**
- * Accetta richiesta di amicizia
- * @param {any} query 
+ * Accetta richiesta di amicizia, gli utenti vengono informati tramite web socket con l'evento newFriend
+ * @param query 
  * @prop query.id - id della richiesta di amicizia
  * @prop query.sender - receiver della precedente richiesta di amicizia
  * @prop query.receiver - sender della precendere richiesra di amicizia
- * @param {Request} request 
- * @param {Response} response 
+ * @param request 
+ * @param response 
  */
 const acceptRequest = (query: any, request: Request, response: Response) => {
     FriendshipRequests.findOneAndRemove(query.id !== undefined ? {_id: query.id} : {sender: query.receiver, receiver: query.sender})
@@ -33,12 +33,12 @@ const acceptRequest = (query: any, request: Request, response: Response) => {
 }
 
 /**
- * Invia richiesta di amicizia
- * @param {Request} req 
+ * Invia richiesta di amicizia, il destinatario viene informato tramite web socket con l'evento newFriendshipRequest
+ * @param req 
  * @prop req.body.receiver - utente destinatario
  * @prop req.body.sender - utente mittente
  * @prop req.body.message - messaggio della richiesta
- * @param {Response} res 
+ * @param res 
  */
 export const sendFriendshipRequest = (req: Request, res: Response) => {
     FriendshipRequests.exists({sender: req.body.receiver, receiver: req.body.sender})
@@ -62,9 +62,9 @@ export const sendFriendshipRequest = (req: Request, res: Response) => {
 
 /**
  * Accetta richiesta di amicizia 
- * @param {Request} req 
+ * @param req 
  * @prop req.body.requestID - ID della richiesta di amicizia
- * @param {Response} res 
+ * @param res 
  */
 export const acceptFriendshipRequest = (req: Request, res: Response) => {
     acceptRequest({id: req.body.requestID}, req, res);
@@ -72,10 +72,10 @@ export const acceptFriendshipRequest = (req: Request, res: Response) => {
 
 /**
  * Rifiuta la richiesta di amicizia
- * @param {Request} req 
+ * @param req 
  * @prop body
  * @prop requestID - ID della richiesta di amicizia
- * @param {Request} res 
+ * @param res 
  */
 export const rejectFriendshipRequest = (req: Request, res: Response) => {
     FriendshipRequests.findById(req.body.requestID)

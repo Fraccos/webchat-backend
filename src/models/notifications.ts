@@ -3,10 +3,10 @@ import { INotification } from "./interfaces/notifications";
 
 /**
  * Schema delle notifiche
- * @param {ObjectId} receiver - id dell'utente destinatario della notifica
- * @param {Date} timestamp - timestamp di invio della notifica
- * @param {String} event - evento web socket
- * @param {Any} object - oggetto web socket
+ * @param receiver - id dell'utente destinatario della notifica
+ * @param timestamp - timestamp di invio della notifica
+ * @param event - evento web socket
+ * @param object - oggetto web socket
  */
 const notificationSchema = new Schema<INotification>({
     receiver: {type: Types.ObjectId, ref: "User", required: true, index: true},

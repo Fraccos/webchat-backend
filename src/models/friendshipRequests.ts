@@ -3,11 +3,11 @@ import { IFriendshipRequest } from "./interfaces/friendshipRequests";
 
 /**
  * Schema di una richiesta di amicizia
- * @param {ObjectId} sender - id utente mittente della richiesta di amicizia
- * @param {ObjectId} receiver - id utente destinatario della richiesta di amicizia
- * @param {Date} timestamp - timestamp di invio della richiesta di amicizia
- * @param {Boolean} rejected - true se la richiesta è stata rifiutata, altrimenti false
- * @param {String} message - contenuto del messaggio della richiesta di amicizia
+ * @param sender - id utente mittente della richiesta di amicizia
+ * @param receiver - id utente destinatario della richiesta di amicizia
+ * @param timestamp - timestamp di invio della richiesta di amicizia
+ * @param rejected - true se la richiesta è stata rifiutata, altrimenti false
+ * @param message - contenuto del messaggio della richiesta di amicizia
  */
 const friendshipRequestSchema = new Schema<IFriendshipRequest>({
     sender: {type: Types.ObjectId, ref: "User", required: true},

@@ -8,10 +8,10 @@ import { FriendshipRequests } from "../models/friendshipRequests";
 
 /**
  * Restituisce un utente a partire dal suo Id
- * @param {Request} req 
+ * @param req 
  * @prop params
  * @prop userID - Id utente
- * @param {Response} res 
+ * @param res 
  */
 export const getUserById = (req:Request, res:Response) => {
     User.findById(req.params.userID)
@@ -20,10 +20,10 @@ export const getUserById = (req:Request, res:Response) => {
 
 /**
  * Restituisce un utente a partire dal suo username
- * @param {Request} req 
+ * @param req 
  * @prop params
  * @prop username - nome utente
- * @param {Response} res 
+ * @param res 
  */
 export const getUserByUsername = (req:Request, res:Response) => {
     User.findOne({username: req.params.username})
@@ -32,9 +32,9 @@ export const getUserByUsername = (req:Request, res:Response) => {
 
 /**
  * Rimuove un amico dall lista di amici dell'utente corrente, gli utenti vengono informati tramite web socket con l'evento removedFromFriends
- * @param {Request} req
+ * @param req
  * @prop req.body.oldFriend - user id da rimuovere
- * @param {Response} res 
+ * @param res 
  */
 export const removeFriend = (req: Request, res: Response) => {
   let user = req.user as IUser;
@@ -64,10 +64,10 @@ export const getFriendsByUserid = (req:Request, res:Response) => {
 
 /**
  * Restituisce gli utenti con username contente la stringa di ricerca
- * @param {Request} req 
+ * @param req 
  * @prop req.query.q - stringa di ricerca
  * @prop req.query.friendOnly - restituisce solo gli amici
- * @param {Response} res 
+ * @param res 
  */
 export const searchUsersByUsername = (req:Request<{},{},{},{friendOnly:string, q: RegExp}>, res:Response) => {
   const user = req.user as IUser;
@@ -105,11 +105,11 @@ export const searchNewFriendsByUsername = (req:Request<{},{},{},{q: RegExp}>, re
 
 /**
  * Registrazione di un nuovo utente
- * @param {Request} req 
+ * @param req 
  * @prop req.body.email - E-mail
  * @prop req.body.username - Username
  * @prop req.body.password - Password
- * @param {Response} res 
+ * @param res 
  */
 export const registerUser = (req:Request, res:Response) => {
   User.register(
@@ -129,8 +129,8 @@ export const registerUser = (req:Request, res:Response) => {
 
 /**
  * Genera e restituisce un token JWT per l'autenticazione dei web socket
- * @param {Request} req 
- * @param {Response} res 
+ * @param req 
+ * @param res 
  */
 export const createJWT = (req:Request, res:Response) => {
   const user = req.user as IUser;

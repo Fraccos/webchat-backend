@@ -8,12 +8,12 @@ type UserModel = UserModelGeneric<IUser>;
 
 /**
  * Schema dell'utente
- * @param {String} username - nome utente, univoco
- * @param {String} email - email, univoco
- * @param {String} bio - biografia, non obbligatorio
- * @param {String} avatar - immagine in formato base64, non obbligatorio
- * @param {Array} friends - array di user id degli amici dell'utente
- * @param {Array} chats - array delle chat dell'utente 
+ * @param username - nome utente, univoco
+ * @param email - email, univoco
+ * @param bio - biografia, non obbligatorio
+ * @param avatar - immagine in formato base64, non obbligatorio
+ * @param friends - array di user id degli amici dell'utente
+ * @param chats - array delle chat dell'utente 
  */
 const userSchema = new Schema<IUser, UserModel>({
     username: {type: String, required: true, unique:true},

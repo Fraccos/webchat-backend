@@ -17,6 +17,10 @@ export const listenersMap = new Map<string, socketCallback>();
 export type socketCallback = (socket:Socket,...args: any[]) => void
 
 export class SocketService {
+    /**
+     * Inizializza il gestore dei socket
+     * @param server 
+     */
     static init(server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>) {
         const io = new Server(socketPort, {
             cors: {
@@ -59,6 +63,13 @@ export class SocketService {
         listenersMap.set(eventName, callback);
     }   
 
+    /**
+     * Invia un messaggio tramite websocket a uno o più utenti
+     * @param usersID - array di stringhe di user id usate come chiave per identificare i socket attivi
+     * @param event - evento
+     * @param object - oggetto 
+     * @param sendOffline - se true e l'utente non è online, salva l'evento nella tabella Notifications
+     */
     static sendAll(usersID: string[], event: string, object: any, sendOffline: boolean = true) {
         usersID.forEach( id => {
             const socket = usersSocket.get(id);

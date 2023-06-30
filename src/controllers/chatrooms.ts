@@ -7,10 +7,10 @@ import { SocketService } from "../services/socket";
 import { Types } from "mongoose";
 
 /**
- * Controlla se un utente fa parte di una chat
- * @param {string} chatroomId 
- * @param {IUser} user 
- * @returns {Boolean} - true: l'utente appartiene alla chatroom, false: l'utente non appartiene alla chatroom
+ * Controlla se un utente fa parte di una chatroom
+ * @param chatroomId - id della chatroom
+ * @param user 
+ * @returns true se l'utente appartiene alla chatroom, altrimenti false
  */
 const isMember = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => { 
     if (c === null) {
@@ -20,10 +20,10 @@ const isMember = async (chatroomId: string, user: IUser) => Chatroom.findById(ch
 });
 
 /**
- * Controlla se un utente è amministratore di una chat
- * @param {String} chatroomId 
- * @param {IUser} user 
- * @returns {Boolean} - true: l'utente è amministratore della chat, false: l'utente non è amministratore della chat
+ * Controlla se un utente è amministratore di una chatroom
+ * @param chatroomId - id della chatroom
+ * @param user 
+ * @returns true se l'utente è amministratore alla chatroom, altrimenti false
  */
 const isOwner = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => { 
     if (c === null) {
@@ -33,12 +33,12 @@ const isOwner = async (chatroomId: string, user: IUser) => Chatroom.findById(cha
 });
 
 /**
- * Inserisce messaggio in una chatroom e informa tutti i membri della chatroom tramite web socket
- * @param {Request} request 
- * @param {Response} response 
- * @param {IUser} user 
- * @param {IMessageContent} messageContent 
- * @param {IChatroom} chatroom 
+ * Inserisce un messaggio in una chatroom, gli utenti vengono informati tramite web socket con l'evento pushedMessage
+ * @param request 
+ * @param response 
+ * @param user 
+ * @param messageContent - contenuto del messaggio
+ * @param chatroom 
  */
 const pushMessage = (request: Request, response: Response, user: IUser, messageContent: IMessageContent[], chatroom: IChatroom) => {
     const date = new Date();
@@ -58,17 +58,16 @@ const pushMessage = (request: Request, response: Response, user: IUser, messageC
 }
 
 /**
- * Modifica i messaggi
- * @param {Request} request 
- * @prop body
- * @prop id
- * @param {Response} response 
- * @param {NextFunction} next 
- * @param {IMessageContent} messageContent 
+ * Modifica un messaggio in una chatroom, gli utenti vengono informati tramite web socket con l'evento editedMessage
+ * @param request 
+ * @prop request.body.chatroomId - id della chatroom
+ * @param response 
+ * @param next 
+ * @param messageContent - contenuto del messaggio
  */
 const updateMessage = (request: Request, response: Response, next: NextFunction, messageContent: IMessageContent[]) => {
     const user = request.user as IUser;
-    Chatroom.findById(request.body.id)
+    Chatroom.findById(request.body.chatroomId)
     .then(c => {
         if (!c.members.includes(user._id)) {
             next(new Error("Only members can send messages"))
@@ -100,11 +99,16 @@ const updateMessage = (request: Request, response: Response, next: NextFunction,
     })
 }
 
+
 /**
- * Crea una chatroom
- * @param {Request} req 
- * @param {Response} res 
- * @param {NextFunction} next 
+ * Crea una chatroom, gli utenti vengono informati tramite web socket con l'evento chatroomCreated
+ * @param req 
+ * @prop req.body.members - array dei membri della chatroom
+ * @prop req.body.type - tipo di chatroom (single, group)
+ * @prop req.body.owners - array degli amministratori della chatroom, se type == group
+ * @prop req.body.name - nome della chatroom, se type == group
+ * @param res 
+ * @param next 
  * @returns 
  */
 export const createChatroom = async (req:Request, res:Response, next: NextFunction) => {
@@ -186,6 +190,13 @@ export const createChatroom = async (req:Request, res:Response, next: NextFuncti
     }
 };
 
+/**
+ * Elimina una chatroom, gli utenti vengono informati tramite web socket con l'evento chatroomDeleted
+ * @param req 
+ * @prop req.body.chatroomId
+ * @param res 
+ * @param next 
+ */
 export const deleteChatroom = async (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
@@ -206,9 +217,18 @@ export const deleteChatroom = async (req:Request, res:Response, next: NextFuncti
     })
 };
 
+/**
+ * Aggiunge un utente a una chatroom, l'utente viene informato tramite web socket con l'evento addedToChatroom
+ * @param req 
+ * @prop req.body.chatroomId - id della chatroom
+ * @prop req.body.newMember.id - id dell'utente da aggiungere
+ * @prop req.body.newMember.username - username dell'utente da aggiungere
+ * @param res 
+ * @param next 
+ */
 export const addMember = async (req:Request, res:Response, next:NextFunction) => {
     const user = req.user as IUser;
-    Chatroom.findById(req.body.id)
+    Chatroom.findById(req.body.chatroomId)
         .then(c => {
             if (c.type === "single") {
                 throw new Error("Can't add members to private chat")
@@ -239,9 +259,18 @@ export const addMember = async (req:Request, res:Response, next:NextFunction) =>
         })
 };
 
+/**
+ * Rimuove un utente da una chatroom, l'utente viene informato tramite web socket con l'evento removedFromChatroom
+ * @param req 
+ * @prop req.body.chatroomId - id della chatroom
+ * @prop req.body.oldMember.id - id dell'utente da aggiungere
+ * @prop req.body.oldMember.username - username dell'utente da aggiungere
+ * @param res 
+ * @param next 
+ */
 export const removeMember = async (req:Request, res:Response, next:NextFunction) => {
     const user = req.user as IUser;
-    Chatroom.findById(req.body.id)
+    Chatroom.findById(req.body.chatroomId)
         .then(c => {
             if (c.type === "single") {
                 throw new Error("Can't remove members from private chat")
@@ -266,6 +295,13 @@ export const removeMember = async (req:Request, res:Response, next:NextFunction)
         })
 };
 
+/**
+ * Restituisce tutti i messaggi di tutte le chatroom di cui fa parte l'utente corrente, modificati dopo un timestamp specifico
+ * @param req 
+ * @prop req.params.lastmessageiso - timestamp in formato ISO 
+ * @param res 
+ * @param next 
+ */
 export const retriveLatestMessages = (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
@@ -291,6 +327,15 @@ export const retriveLatestMessages = (req:Request, res:Response, next: NextFunct
     ) 
 }
 
+/**
+ * Restituisce i messaggi di una chatroom in ordine decrescente di ultima modifica in maniera paginata
+ * @param req 
+ * @prop req.params.id - id della chatroom
+ * @prop req.query.page - pagina dei risultati da restituire, 0-indexed
+ * @var pageSize - numero di risultati per pagina
+ * @param res 
+ * @param next 
+ */
 export const retrieveMessages = (req:Request<{id: string}, {}, {}, {page: number}>, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
@@ -305,6 +350,14 @@ export const retrieveMessages = (req:Request<{id: string}, {}, {}, {page: number
     ]).then(c => res.json(c));
 }
 
+/**
+ * Aggiunge un messagio a una chatroom
+ * @param req 
+ * @prop req.body.chatroomId - id della chatroom
+ * @prop req.body.message.content - contenuto del messaggio
+ * @param res 
+ * @param next 
+ */
 export const addMessage = async (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
@@ -317,14 +370,34 @@ export const addMessage = async (req:Request, res:Response, next: NextFunction) 
     .then(c => pushMessage(req, res, user, req.body.message.content as IMessageContent[], c));
 }
 
+/**
+ * Modifica un messaggio in una chatroom
+ * @param req 
+ * @prop req.body.message.content - contenuto del messaggio
+ * @param res 
+ * @param next 
+ */
 export const editMessage = async (req:Request, res:Response, next:NextFunction) => {
     updateMessage(req, res, next, req.body.message.content);
 }
 
+/**
+ * Elimina un messaggio da una chatroom
+ * @param req 
+ * @param res 
+ * @param next 
+ */
 export const deleteMessage = async (req:Request, res:Response, next:NextFunction) => {
     updateMessage(req, res, next, [{type: "deleted", value: ""}]);
 }
 
+/**
+ * Aggiorna il timestamp di lettura dell'utente corrente, gli utenti vengono informati tramite web socket con l'evento updatedLastRead
+ * @param req 
+ * @prop req.body.chatroomId - id della chatroom
+ * @param res 
+ * @param next 
+ */
 export const updateLastRead = async (req:Request, res:Response, next:NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
