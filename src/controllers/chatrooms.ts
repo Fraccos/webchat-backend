@@ -6,19 +6,40 @@ import { IChatroom, IMessage, IMessageContent } from "../models/interfaces/chatr
 import { SocketService } from "../services/socket";
 import { Types } from "mongoose";
 
-
+/**
+ * Controlla se un utente fa parte di una chat
+ * @param {String} chatroomId 
+ * @param {IUser} user 
+ * @returns {Boolean} - true: l'utente appartiene alla chatroom, false: l'utente non appartiene alla chatroom
+ */
 const isMember = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => { 
     if (c === null) {
         return false;
     }
     return c.members.includes(user._id)
 });
+
+/**
+ * Controlla se un utente è amministratore di una chat
+ * @param {String} chatroomId 
+ * @param {IUser} user 
+ * @returns {Boolean} - true: l'utente è amministratore della chat, false: l'utente non è amministratore della chat
+ */
 const isOwner = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => { 
     if (c === null) {
         return false;
     }
     return c.owners.includes(user._id)
 });
+
+/**
+ * Inserisce messaggio in una chatroom e informa tutti i membri della chatroom tramite web socket
+ * @param {Request} request 
+ * @param {Response} response 
+ * @param {IUser} user 
+ * @param {IMessageContent} messageContent 
+ * @param {IChatroom} chatroom 
+ */
 const pushMessage = (request: Request, response: Response, user: IUser, messageContent: IMessageContent[], chatroom: IChatroom) => {
     const date = new Date();
     let message: IMessage = {
@@ -35,6 +56,16 @@ const pushMessage = (request: Request, response: Response, user: IUser, messageC
         response.sendStatus(200);
     })
 }
+
+/**
+ * Modifica i messaggi
+ * @param {Request} request 
+ * @prop body
+ * @prop id
+ * @param {Response} response 
+ * @param {NextFunction} next 
+ * @param {IMessageContent} messageContent 
+ */
 const updateMessage = (request: Request, response: Response, next: NextFunction, messageContent: IMessageContent[]) => {
     const user = request.user as IUser;
     Chatroom.findById(request.body.id)
@@ -69,7 +100,13 @@ const updateMessage = (request: Request, response: Response, next: NextFunction,
     })
 }
 
-
+/**
+ * Crea una chatroom
+ * @param {Request} req 
+ * @param {Response} res 
+ * @param {NextFunction} next 
+ * @returns 
+ */
 export const createChatroom = async (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
