@@ -1,6 +1,14 @@
 import { Schema, Types, model } from "mongoose";
 import { IFriendshipRequest } from "./interfaces/friendshipRequests";
 
+/**
+ * Schema di una richiesta di amicizia
+ * @param {ObjectId} sender - mittente della richiesta di amicizia, oggetto di tipo User
+ * @param {ObjectId} receiver - destinatario della richiesta di amicizia, oggetto di tipo User
+ * @param {Date} timestamp - data di invio della richiesta di amicizia
+ * @param {Boolean} rejected - true: richiesta rifiutata, false: richiesta in attesa
+ * @param {String} message - contenuto del messaggio della richiesta di amicizia
+ */
 const friendshipRequestSchema = new Schema<IFriendshipRequest>({
     sender: {type: Types.ObjectId, ref: "User", required: true},
     receiver: {type: Types.ObjectId, ref: "User", required: true},

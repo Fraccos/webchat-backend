@@ -6,6 +6,14 @@ import { Document, PassportLocalModel, PassportLocalSchema } from "mongoose";
 interface UserModelGeneric <T extends Document> extends PassportLocalModel<T> {}
 type UserModel = UserModelGeneric<IUser>;
 
+/**
+ * Schema dell'utente
+ * @param {String} username - nome utente
+ * @param {String} email - email
+ * @param {String} bio - biografia
+ * @param {String} avatar - immagine in formato base64
+ * @param {Array} friends - lista degli amici, array di oggetti di tipo User
+ */
 const userSchema = new Schema<IUser, UserModel>({
     username: {type: String, required: true, unique:true},
     email: {type: String, required: true, unique:true},
