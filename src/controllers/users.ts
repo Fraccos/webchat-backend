@@ -56,11 +56,24 @@ export const removeFriend = (req: Request, res: Response) => {
  * @param {Request} req 
  * @prop query 
  * @prop q - stringa di ricerca
+ * @prop friendOnly - restituisce solo gli amici
  * @param {Response} res 
  */
-export const searchUsers = (req:Request, res:Response) => {
-  User.find({"username": {"$regex": req.query.q, "$options": "i"}})
-  .then(u => res.json(u));
+export const searchUsersByUsername = (req:Request<{},{},{},{friendOnly:string, q: RegExp}>, res:Response) => {
+  const user = req.user as IUser;
+  if (req.query.friendOnly === "true") {
+    User.findById(user._id).populate('friends')
+    .then(u => {
+      let friends = u.friends;
+      const filtered = friends.filter( friend => req.query.q.test(friend.username)  );
+      res.json(filtered);
+    });
+  }
+  else {
+    User.find({"username": {"$regex": req.query.q, "$options": "i"}})
+    .then(u => res.json(u));
+  }
+  
 };
 
 /**
@@ -107,3 +120,9 @@ export const createJWT = (req:Request, res:Response) => {
   )
 };
 
+
+
+export const getFriendsByUserid = (req:Request, res:Response) => {
+  User.findOne({id: req.params.id}).populate('friends')
+  .then(u => res.json(u));
+};

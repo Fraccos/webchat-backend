@@ -1,4 +1,4 @@
-import { createJWT, getUserById, getUserByUsername, registerUser, removeFriend, searchUsers } from "../controllers/users";
+import { createJWT, getFriendsByUserid, getUserById, getUserByUsername, registerUser, removeFriend, searchUsersByUsername, } from "../controllers/users";
 import express from "express";
 import AuthService from "../services/auth";
 
@@ -10,7 +10,10 @@ usersRouter.post("/register", registerUser)
 .use(AuthService.isValid)
 .get('/byUsername/:username', getUserByUsername)
 
-.get('/search', searchUsers)
+.get('/search/byUsername', searchUsersByUsername)
+
+
+.get('/friends', getFriendsByUserid)
 
 .get('/byUserID/:userID', getUserById)
 

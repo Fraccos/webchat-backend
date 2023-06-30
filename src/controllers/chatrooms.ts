@@ -8,7 +8,7 @@ import { Types } from "mongoose";
 
 /**
  * Controlla se un utente fa parte di una chat
- * @param {String} chatroomId 
+ * @param {string} chatroomId 
  * @param {IUser} user 
  * @returns {Boolean} - true: l'utente appartiene alla chatroom, false: l'utente non appartiene alla chatroom
  */
@@ -189,10 +189,10 @@ export const createChatroom = async (req:Request, res:Response, next: NextFuncti
 export const deleteChatroom = async (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
-    if((req.body.type === "group" && !isOwner(req.body.id, user)) || (req.body.type === "single" && !isMember(req.body.id, user))) {
+    if((req.body.type === "group" && !isOwner(req.body.chatroomId, user)) || (req.body.type === "single" && !isMember(req.body.chatroomId, user))) {
         next(new Error("You're not an owner of this chatroom"));
     }
-    Chatroom.findById(req.body.id)
+    Chatroom.findById(req.body.chatroomId)
     .then(dC => {
         pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} deleted this chatroom`}], dC);
         User.updateMany(
@@ -308,12 +308,12 @@ export const retrieveMessages = (req:Request<{id: string}, {}, {}, {page: number
 export const addMessage = async (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
-    const check = await isMember(req.body.id, user)
+    const check = await isMember(req.body.chatroomId, user)
     if (!check) {
         next(Error("Only members can send messages"));
         return;
     }
-    Chatroom.findById(req.body.id)
+    Chatroom.findById(req.body.chatroomId)
     .then(c => pushMessage(req, res, user, req.body.message.content as IMessageContent[], c));
 }
 
@@ -328,7 +328,7 @@ export const deleteMessage = async (req:Request, res:Response, next:NextFunction
 export const updateLastRead = async (req:Request, res:Response, next:NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
-    Chatroom.findById(req.body.id)
+    Chatroom.findById(req.body.chatroomId)
     .then(c => {
         c.lastRead.set(userId, new Date());
         return c.save()
