@@ -36,11 +36,11 @@ authService.init()
 app.use(express.json())
     .use(cors({credentials: true, origin: true}))
 
-    .use(express.static("../build"))
+    //.use(express.static("../build"))
 
-    .use('api/users', usersRouter)
-    .use("api/friends", friendsRouter)
-    .use('api/chats', chatroomsRouter)
+    .use('/api/users', usersRouter)
+    .use("/api/friends", friendsRouter)
+    .use('/api/chats', chatroomsRouter)
 
     .use((err:Error, req:Request,  res:Response, next:NextFunction) => {
         if (res.headersSent) {

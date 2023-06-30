@@ -19,7 +19,7 @@ const friendshipRequestSchema = new Schema<IFriendshipRequest>({
 
 friendshipRequestSchema.pre("save", function(next) {
     let date: Date;
-    date = new Date(date.getTime() - (1000*60*60*24*14))
+    date = new Date(new Date().getTime() - (1000*60*60*24*14))
     FriendshipRequests.exists({sender: this.sender, receiver: this.receiver, rejected: false})
     .then(r => {
         if (r !== null)

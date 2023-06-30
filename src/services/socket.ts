@@ -43,9 +43,11 @@ export class SocketService {
                 });
             })
             User.findById(user._id).then(u => {
-                const dstArray = u.friends.map((el: IUser) => el._id.toString()).filter((el: string) => usersSocket.has(el));
-                socket.emit("friendsOnline", dstArray);
-                SocketService.sendAll(dstArray, "friendOnline", {id: u._id}, false);
+                if (u.friends !== null)  {
+                    const dstArray = u.friends.map((el: IUser) => el._id.toString()).filter((el: string) => usersSocket.has(el));
+                    socket.emit("friendsOnline", dstArray);
+                    SocketService.sendAll(dstArray, "friendOnline", {id: u._id}, false);
+                }
             })
             socket.on('disconnect', function() {
                 usersSocket.delete(user._id);

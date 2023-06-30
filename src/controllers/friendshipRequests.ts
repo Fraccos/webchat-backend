@@ -8,13 +8,13 @@ import { IUser } from "../models/interfaces/users";
  * Accetta richiesta di amicizia, gli utenti vengono informati tramite web socket con l'evento newFriend
  * @param query 
  * @prop query.id - id della richiesta di amicizia
- * @prop query.sender - receiver della precedente richiesta di amicizia
  * @prop query.receiver - sender della precendere richiesra di amicizia
  * @param request 
  * @param response 
  */
 const acceptRequest = (query: any, request: Request, response: Response) => {
-    FriendshipRequests.findOneAndRemove(query.id !== undefined ? {_id: query.id} : {sender: query.receiver, receiver: query.sender})
+    const user = request.user as IUser;
+    FriendshipRequests.findOneAndRemove(query.id !== undefined ? {_id: query.id} : {sender: query.receiver, receiver: user._id})
     .then(fR => {
         User.findById(fR.sender)
         .then(u => {
@@ -36,16 +36,17 @@ const acceptRequest = (query: any, request: Request, response: Response) => {
  * Invia richiesta di amicizia, il destinatario viene informato tramite web socket con l'evento newFriendshipRequest
  * @param req 
  * @prop req.body.receiver - utente destinatario
- * @prop req.body.sender - utente mittente
  * @prop req.body.message - messaggio della richiesta
  * @param res 
  */
 export const sendFriendshipRequest = (req: Request, res: Response) => {
-    FriendshipRequests.exists({sender: req.body.receiver, receiver: req.body.sender})
+    const user = req.user as IUser;
+    console.log(user._id);
+    FriendshipRequests.exists({sender: req.body.receiver, receiver: user._id})
     .then(r => {
         if (r === null) {
             FriendshipRequests.create({
-                sender: req.body.sender,
+                sender: user._id,
                 receiver: req.body.receiver,
                 timestamp: new Date(),
                 message: req.body.message
@@ -55,7 +56,7 @@ export const sendFriendshipRequest = (req: Request, res: Response) => {
             });
         }
         else {
-            acceptRequest({sender: req.body.receiver, receiver: req.body.sender}, req, res)
+            acceptRequest({sender: req.body.receiver, receiver: user._id}, req, res)
         }
     })
 }

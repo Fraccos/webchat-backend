@@ -15,7 +15,7 @@ usersRouter.post("/register", registerUser)
 .get('/search/newfriends/byUsername', searchNewFriendsByUsername)
 
 
-.get('/:id/friends', getFriendsByUserid)
+.get('/friends/retrive/:id', getFriendsByUserid)
 
 .get('/byUserID/:userID', getUserById)
 

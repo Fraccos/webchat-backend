@@ -58,8 +58,8 @@ export const removeFriend = (req: Request, res: Response) => {
  * @param res 
  */
 export const getFriendsByUserid = (req:Request, res:Response) => {
-  User.findOne({id: req.params.id}).populate('friends')
-  .then(u => res.json(u));
+  User.findById(req.params.id).populate('friends')
+  .then(u => res.json(u.friends));
 };
 
 /**
@@ -75,7 +75,7 @@ export const searchUsersByUsername = (req:Request<{},{},{},{friendOnly:string, q
     User.findById(user._id).populate('friends')
     .then(u => {
       let friends = u.friends;
-      const filtered = friends.filter( friend => req.query.q.test(friend.username)  );
+      const filtered = friends.filter( friend => new RegExp(req.query.q).test(friend.username)  );
       res.json(filtered);
     });
   }
@@ -97,10 +97,14 @@ export const searchNewFriendsByUsername = (req:Request<{},{},{},{q: RegExp}>, re
   const friends = user.friends as Array<Types.ObjectId>;
   FriendshipRequests.find({sender: user._id, rejected: false}).then(r => r.map(el => el.receiver))
   .then(rS => {
-    User.find({"username": {"$regex": req.query.q, "$options": "i"}})
+    User.find({"username": {"$regex": req.query.q, "$options": "i"}, _id: {
+      $nin: [...friends, ...rS]
+    }})
+    /*
     .then(u => u.filter(el => !friends.includes(el.id)))
-    .then(u => u.filter(el => !rS.includes(el.id)))
-  }).then(uF => res.json(uF));
+    .then(u => u.filter(el => !rS.includes(el.id))) */
+    .then(users => res.json(users));
+  })//.then(uF => res.json(uF));
 }
 
 /**

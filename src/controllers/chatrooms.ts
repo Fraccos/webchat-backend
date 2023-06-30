@@ -140,6 +140,7 @@ export const createChatroom = async (req:Request, res:Response, next: NextFuncti
             type: req.body.type,
             members: members,
             timestamp: Date.now(),
+            lastRead: new Map<string,Date>(),
             messages: []
         }).then(chatroom => {
             chatroom.members.forEach(el => chatroom.lastRead.set(el.toString(), new Date(0)));
@@ -148,10 +149,16 @@ export const createChatroom = async (req:Request, res:Response, next: NextFuncti
                 { _id: { $in: members } },
                 { $push: {chats: chatroom._id}}
             ).exec()
-            .then(() => {
+            .then(async () => {
                 const dstArray = chatroom.members.map((u:IUser)=>u._id.toString());
-                SocketService.sendAll(dstArray, "chatroomCreated", chatroom, false);
-                pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} started a chat with you`}], chatroom);
+                const c:any =  JSON.parse(JSON.stringify(chatroom));
+                if (req.body.type === "single") {
+                    const uId = chatroom.members.find( u => u._id !== user._id );
+                    const otherUser = await User.findById(uId);
+                    c.name = otherUser.username;
+                }
+                SocketService.sendAll(dstArray, "chatroomCreated", c, false);
+                pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} has created this chatroom`}], chatroom);
             })
         }).catch(next);
     }
@@ -212,7 +219,6 @@ export const deleteChatroom = async (req:Request, res:Response, next: NextFuncti
         ).then (() => {
             const dstArray = dC.members.map((u:IUser)=>u._id.toString());
             SocketService.sendAll(dstArray, "chatroomDeleted", {id: dC._id});
-            res.sendStatus(200);
         });
     })
 };

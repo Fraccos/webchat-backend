@@ -23,3 +23,7 @@ export interface IChatroom extends Document {
     messages: IMessage[]
 }
  
+export interface IReadInfo {
+    user: IUser["_id"],
+    date: Date,
+}
