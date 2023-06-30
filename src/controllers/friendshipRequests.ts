@@ -2,13 +2,14 @@ import { FriendshipRequests } from "../models/friendshipRequests"
 import { Request, Response } from 'express';
 import { User } from "../models/users";
 import { SocketService } from "../services/socket";
+import { IUser } from "../models/interfaces/users";
 
 /**
  * Accetta richiesta di amicizia
- * @param {Any} query 
- * @prop id - id della richiesta di amicizia
- * @prop sender - receiver della precedente richiesta di amicizia
- * @prop receiver - sender della precendere richiesra di amicizia
+ * @param {any} query 
+ * @prop query.id - id della richiesta di amicizia
+ * @prop query.sender - receiver della precedente richiesta di amicizia
+ * @prop query.receiver - sender della precendere richiesra di amicizia
  * @param {Request} request 
  * @param {Response} response 
  */
@@ -34,10 +35,9 @@ const acceptRequest = (query: any, request: Request, response: Response) => {
 /**
  * Invia richiesta di amicizia
  * @param {Request} req 
- * @prop body
- * @prop receiver - utente destinatario
- * @prop sender - utente mittente
- * @prop message - messaggio della richiesta
+ * @prop req.body.receiver - utente destinatario
+ * @prop req.body.sender - utente mittente
+ * @prop req.body.message - messaggio della richiesta
  * @param {Response} res 
  */
 export const sendFriendshipRequest = (req: Request, res: Response) => {
@@ -63,8 +63,7 @@ export const sendFriendshipRequest = (req: Request, res: Response) => {
 /**
  * Accetta richiesta di amicizia 
  * @param {Request} req 
- * @prop body
- * @prp requestID - ID della richiesta di amicizia
+ * @prop req.body.requestID - ID della richiesta di amicizia
  * @param {Response} res 
  */
 export const acceptFriendshipRequest = (req: Request, res: Response) => {
@@ -87,4 +86,15 @@ export const rejectFriendshipRequest = (req: Request, res: Response) => {
             res.json({status: "rejected", fR})
         })
     })
+}
+
+/**
+ * Restituisce le richeste di amicizia in attesa per l'utente corrente
+ * @param req 
+ * @param res 
+ */
+export const getPendingFriendshipRequests = (req: Request, res: Response) => {
+    const user = req.user as IUser;
+    FriendshipRequests.find({receiver: user._id, rejected: false}).populate('sender')
+    .then(r => res.json(r));
 }

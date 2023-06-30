@@ -3,8 +3,8 @@ import { IChatroom, IMessage, IMessageContent } from "./interfaces/chatrooms";
 
 type MessageContentModelType = Model<IMessageContent>;
 /**
-* Schema del contenuto dei messaggi
-* @param {string} type - tipo del messaggio (text, notification)
+* Schema del contenuto di un messaggio
+* @param {string} type - tipo associato a value per il rendering frontend (text, notification, deleted)
 * @param {string} value - contenuto del messaggio
 */
 const messageContentSchema = new Schema<IMessageContent, MessageContentModelType>({
@@ -19,11 +19,11 @@ type MessageOverrides = {
 type MessageModelType = Model<IMessage, {}, MessageOverrides>;
 /**
  * Schema di un messaggio
- * @param {ObjectId} sender - mittente del messaggio, oggetto di tipo User
- * @param {Date} created - data di invio del messaggio
- * @param {Date} lastModified - data di ultima modifica del messaggio
- * @param {Boolean} edited - true: messaggio modificato, false: messaggio non modificato
- * @param {Array} content - contiene elementi di tipo messageContentSchema 
+ * @param {ObjectId} sender - id utente mittente del messaggio
+ * @param {Date} created - timestamp di invio del messaggio
+ * @param {Date} lastModified - timestamp di ultima modifica del messaggio
+ * @param {Boolean} edited - true se il messaggio è stato modificato, altrimenti false
+ * @param {Array} content - array di MessageContent, un messaggio potrebbe contenere più MessageContent con type diversi
  */
 const messageSchema = new Schema<IMessage, MessageModelType>({
     sender: {type: Types.ObjectId, ref: "User", required: true},
@@ -39,13 +39,13 @@ type ChatroomOverrides = {
 };
 type ChatroomModelType = Model<IChatroom, {}, ChatroomOverrides>;
 /**
- * Schema della Chatroom
- * @param {String} name - nome della chat
- * @param {String} type - tipo della chat (single, group)
- * @param {Map} lastRead - 
- * @param {ObjectId} owners - amministratore/i della chat, vuoto in caso di chat singola, oggetto di tipo User
- * @param {ObjectIde} members - membri della chat, oggetto di tipo User
- * @param {Array} messages - array dei messaggi della chat, contiene elementi del tipo messageSchema
+ * Schema della chatroom
+ * @param {String} name - nome della chatroom, non obbligatorio, impostato in caso di type == group
+ * @param {String} type - tipo della chatroom (single, group), default single
+ * @param {Map} lastRead - mappa di timestamp di ultima lettura dei membri della chatroom
+ * @param {ObjectId} owners - array di user id degli amministratori della chatroom, non obbligatorio, vuoto in caso di type == single
+ * @param {ObjectIde} members - array di user if dei membri della chatroom
+ * @param {Array} messages - array di MessageSchema
  */
 const chatroomSchema = new Schema<IChatroom, ChatroomModelType>({
     name: {type: String, required: false},

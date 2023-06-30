@@ -4,9 +4,10 @@ import AuthService from "../services/auth";
 import { IUser } from "../models/interfaces/users";
 import { Types } from "mongoose";
 import { SocketService } from "../services/socket";
+import { FriendshipRequests } from "../models/friendshipRequests";
 
 /**
- * Restituisce l'utente a partire dal suo Id
+ * Restituisce un utente a partire dal suo Id
  * @param {Request} req 
  * @prop params
  * @prop userID - Id utente
@@ -18,7 +19,7 @@ export const getUserById = (req:Request, res:Response) => {
 };
 
 /**
- * Restituisce l'utente a partire dal suo username
+ * Restituisce un utente a partire dal suo username
  * @param {Request} req 
  * @prop params
  * @prop username - nome utente
@@ -30,10 +31,9 @@ export const getUserByUsername = (req:Request, res:Response) => {
 };
 
 /**
- * Rimuove un amico dall lista di amici, gli utenti vengono informati tramite web socket con l'evento removedFromFriends
- * @param {Request} req 
- * @prop body
- * @prop oldFriend - utente da rimuovere dagli amici
+ * Rimuove un amico dall lista di amici dell'utente corrente, gli utenti vengono informati tramite web socket con l'evento removedFromFriends
+ * @param {Request} req
+ * @prop req.body.oldFriend - user id da rimuovere
  * @param {Response} res 
  */
 export const removeFriend = (req: Request, res: Response) => {
@@ -52,11 +52,21 @@ export const removeFriend = (req: Request, res: Response) => {
 };
 
 /**
- * Ricerca nel database utenti
+ * Restituisce la lista popolata degli amici di un utente
+ * @param req
+ * @prop req.params.id - Id utente
+ * @param res 
+ */
+export const getFriendsByUserid = (req:Request, res:Response) => {
+  User.findOne({id: req.params.id}).populate('friends')
+  .then(u => res.json(u));
+};
+
+/**
+ * Restituisce gli utenti con username contente la stringa di ricerca
  * @param {Request} req 
- * @prop query 
- * @prop q - stringa di ricerca
- * @prop friendOnly - restituisce solo gli amici
+ * @prop req.query.q - stringa di ricerca
+ * @prop req.query.friendOnly - restituisce solo gli amici
  * @param {Response} res 
  */
 export const searchUsersByUsername = (req:Request<{},{},{},{friendOnly:string, q: RegExp}>, res:Response) => {
@@ -77,12 +87,28 @@ export const searchUsersByUsername = (req:Request<{},{},{},{friendOnly:string, q
 };
 
 /**
+ * Restituisce gli utenti non appartenti agli amici dell'utente corrente o a cui è stata inviata una richiesta di amicizia con username contente la stringa di ricerca
+ * @param req
+ * @prop req.query.q - stringa di ricerca
+ * @param res 
+ */
+export const searchNewFriendsByUsername = (req:Request<{},{},{},{q: RegExp}>, res: Response) => {
+  const user = req.user as IUser;
+  const friends = user.friends as Array<Types.ObjectId>;
+  FriendshipRequests.find({sender: user._id, rejected: false}).then(r => r.map(el => el.receiver))
+  .then(rS => {
+    User.find({"username": {"$regex": req.query.q, "$options": "i"}})
+    .then(u => u.filter(el => !friends.includes(el.id)))
+    .then(u => u.filter(el => !rS.includes(el.id)))
+  }).then(uF => res.json(uF));
+}
+
+/**
  * Registrazione di un nuovo utente
  * @param {Request} req 
- * @prop body
- * @prop email 
- * @prop username
- * @prop password
+ * @prop req.body.email - E-mail
+ * @prop req.body.username - Username
+ * @prop req.body.password - Password
  * @param {Response} res 
  */
 export const registerUser = (req:Request, res:Response) => {
@@ -102,7 +128,7 @@ export const registerUser = (req:Request, res:Response) => {
 };
 
 /**
- * Creazione del JSON Web Token
+ * Genera e restituisce un token JWT per l'autenticazione dei web socket
  * @param {Request} req 
  * @param {Response} res 
  */
@@ -118,11 +144,4 @@ export const createJWT = (req:Request, res:Response) => {
       ) 
     }
   )
-};
-
-
-
-export const getFriendsByUserid = (req:Request, res:Response) => {
-  User.findOne({id: req.params.id}).populate('friends')
-  .then(u => res.json(u));
 };

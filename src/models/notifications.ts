@@ -3,8 +3,8 @@ import { INotification } from "./interfaces/notifications";
 
 /**
  * Schema delle notifiche
- * @param {ObjectId} receiver - destinatario della notifica, oggetto di tipo User
- * @param {Date} timestamp - data della notifica
+ * @param {ObjectId} receiver - id dell'utente destinatario della notifica
+ * @param {Date} timestamp - timestamp di invio della notifica
  * @param {String} event - evento web socket
  * @param {Any} object - oggetto web socket
  */

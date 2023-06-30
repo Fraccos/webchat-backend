@@ -35,15 +35,12 @@ authService.init()
 
 app.use(express.json())
     .use(cors({credentials: true, origin: true}))
-    .use('/users', usersRouter)
-    .use("/friends", friendsRouter)
-    .use('/chats', chatroomsRouter)
-    .get('/', (req, res) => {
-        res.json({message: "ok"});
-    })
-    .get("/login", (req, res) => {
-        res.json({msg: "not authenticated"});
-    })
+
+    .use(express.static("../build"))
+
+    .use('api/users', usersRouter)
+    .use("api/friends", friendsRouter)
+    .use('api/chats', chatroomsRouter)
 
     .use((err:Error, req:Request,  res:Response, next:NextFunction) => {
         if (res.headersSent) {
