@@ -1,5 +1,5 @@
 import { FriendshipRequests } from "../models/friendshipRequests"
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { User } from "../models/users";
 import { SocketService } from "../services/socket";
 import { IUser } from "../models/interfaces/users";
@@ -43,9 +43,13 @@ const acceptRequest = (query: any, request: Request, response: Response) => {
  * @prop req.body.message - messaggio della richiesta
  * @param res 
  */
-export const sendFriendshipRequest = (req: Request, res: Response) => {
+export const sendFriendshipRequest = (req: Request, res: Response, next: NextFunction) => {
     const user = req.user as IUser;
     console.log(user._id);
+    if (req.body.message === undefined || req.body.message.length < 1) {
+        next(new Error("Inserire il testo di richiesta amicizia"));
+        return;
+    }
     FriendshipRequests.exists({sender: req.body.receiver, receiver: user._id})
     .then(r => {
         if (r === null) {

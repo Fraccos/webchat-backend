@@ -444,7 +444,12 @@ export const updateLastRead = async (req:Request, res:Response, next:NextFunctio
         c.lastRead.set(userId, new Date());
         return c.save()
     }).then(uC => {
-        SocketService.sendAll(uC.members, "updatedLastRead", uC.lastRead, false);
+        SocketService.sendAll(uC.members.map(u => u.toString()), "updatedLastRead", 
+        {   
+            _id: uC._id,
+            lastRead: uC.lastRead
+        }
+            , false);
         res.sendStatus(200);
     })
 }

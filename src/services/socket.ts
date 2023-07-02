@@ -53,8 +53,10 @@ export class SocketService {
                 usersSocket.delete(user._id);
                 console.log(`- OUT: ${user._id}`);
                 User.findById(user._id).then(u => {
-                    const dstArray = u.friends.map((el: IUser) => el._id.toString()).filter((el: string) => usersSocket.has(el));
-                    SocketService.sendAll(dstArray, "friendOffline", {id: u._id}, false);
+                    if (u.friends !== undefined) {
+                        const dstArray = u.friends.map((el: IUser) => el._id.toString()).filter((el: string) => usersSocket.has(el));
+                        SocketService.sendAll(dstArray, "friendOffline", {id: u._id}, false);
+                    }  
                 })
              });
 
