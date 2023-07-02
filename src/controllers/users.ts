@@ -149,3 +149,14 @@ export const createJWT = (req:Request, res:Response) => {
     }
   )
 };
+
+export const getUsernamesMapByUserIdArray = (req: Request, res: Response) => {
+  const objIdArray = req.body.idArray.map(el => new Types.ObjectId(el));
+  User.find({_id: {
+    $in: objIdArray
+  }}).then( users => {
+    const newObj:any = {};
+    users.forEach( u => newObj[u._id] = u.username);
+    res.json( newObj);
+  })
+}

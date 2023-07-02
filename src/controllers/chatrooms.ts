@@ -41,20 +41,22 @@ const isOwner = async (chatroomId: string, user: IUser) => Chatroom.findById(cha
  * @param chatroom 
  */
 const pushMessage = (request: Request, response: Response, user: IUser, messageContent: IMessageContent[], chatroom: IChatroom) => {
-    const date = new Date();
-    let message: IMessage = {
-        sender: user._id,
-        created: date,
-        lastModified: date,
-        edited: false,
-        content: messageContent
-    };
-    chatroom.messages.push(message);
-    chatroom.save().then(uC => {
-        const dstArray = uC.members.map((u:IUser)=>u._id.toString());
-        SocketService.sendAll(dstArray, "pushedMessage", {id: uC._id, message: message}, false);
-        response.sendStatus(200);
-    })
+    if (chatroom !== null && chatroom !== undefined) {
+        const date = new Date();
+        let message: IMessage = {
+            sender: user._id,
+            created: date,
+            lastModified: date,
+            edited: false,
+            content: messageContent
+        };
+        chatroom.messages.push(message);
+        chatroom.save().then(uC => {
+            const dstArray = uC.members.map((u:IUser)=>u._id.toString());
+            SocketService.sendAll(dstArray, "pushedMessage", {id: uC._id, message: message}, false);
+            response.sendStatus(200);
+        })
+    }
 }
 
 /**
@@ -114,9 +116,9 @@ const updateMessage = (request: Request, response: Response, next: NextFunction,
 export const createChatroom = async (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
-    const friends: Array<string> = user.friends.map(el => el.toString());
-    const members: Array<string> = req.body.members.sort();
-    const friendsMembers: Array<string> = members.filter(el => !friends.includes(el));
+    const friendsId: Array<string> = user.friends.map(el => el._id.toString());
+    const members: Array<string> = req.body.members.sort( (a,b) => a.toString() > b.toString() ? 1 : -1);
+    const FriendsMembersId: Array<string> = members.filter(el => friendsId.includes(el.toString()));
     if (!req.body.members.includes(userId)) {
         next(new Error("Invalid chat"))
         return;
@@ -151,25 +153,35 @@ export const createChatroom = async (req:Request, res:Response, next: NextFuncti
             ).exec()
             .then(async () => {
                 const dstArray = chatroom.members.map((u:IUser)=>u._id.toString());
-                const c:any =  JSON.parse(JSON.stringify(chatroom));
                 if (req.body.type === "single") {
-                    const uId = chatroom.members.find( u => u._id !== user._id );
+                    const c:any =  JSON.parse(JSON.stringify(chatroom));
+                    const uId = chatroom.members.find( u => u._id.toString() !== user._id.toString() );
                     const otherUser = await User.findById(uId);
-                    c.name = otherUser.username;
+                    c["_id"] = chatroom._id.toString();
+                    SocketService.sendAll([user._id.toString()], "chatroomCreated", {...c, name: otherUser.username}, false);
+                    SocketService.sendAll([uId.toString()], "chatroomCreated", {...c, name: user.username}, false);
                 }
-                SocketService.sendAll(dstArray, "chatroomCreated", c, false);
+                else {
+                    SocketService.sendAll(dstArray, "chatroomCreated", chatroom, false);
+                }
+
                 pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} has created this chatroom`}], chatroom);
             })
         }).catch(next);
     }
     else if (req.body.type === "group") {
         const membersOwners: Array<string> = req.body.owners.filter(el => !members.includes(el))
-        if (membersOwners.length > 0)
+        //if (membersOwners.length > 0)
+        if (req.body.owners === undefined || !req.body.owners.includes(userId) ) 
             next(new Error("Owners must be also members")) 
-        else if (req.body.owners === undefined || !req.body.owners.includes(userId) ) 
+        else if (req.body.owners.length === 0)
             next(new Error("Every group must have at least one owner"))
-        else if (friendsMembers.length > 0) 
-            next(new Error("You can only add friends to a group"))
+        else if (req.body.name.length === 0)
+            next(new Error("Every group must have a proper name"))
+        else if (req.body.name.length > 20)
+            next(new Error("Name of the group exceeded the limit of chars"))
+        else if (FriendsMembersId.length !== members.length - 1) 
+            next(new Error(`You can only add friends to a group, you have ${members.length - 1 - FriendsMembersId.length } not friends in your list`))
         else if (members.length > 15)
             next(new Error("A group cannot have more than 15 members"))
         else {
@@ -179,6 +191,7 @@ export const createChatroom = async (req:Request, res:Response, next: NextFuncti
                 owners: req.body.owners,
                 members: members,
                 timestamp: Date.now(),
+                lastRead: new Map<string,Date>(),
                 messages: []
             }).then(chatroom => {
                 chatroom.members.forEach(el => chatroom.lastRead.set(el.toString(), new Date(0)));
@@ -210,9 +223,9 @@ export const deleteChatroom = async (req:Request, res:Response, next: NextFuncti
     if((req.body.type === "group" && !isOwner(req.body.chatroomId, user)) || (req.body.type === "single" && !isMember(req.body.chatroomId, user))) {
         next(new Error("You're not an owner of this chatroom"));
     }
-    Chatroom.findById(req.body.chatroomId)
+    Chatroom.findByIdAndDelete(req.body.chatroomId)
     .then(dC => {
-        pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} deleted this chatroom`}], dC);
+        //pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} deleted this chatroom`}], dC);
         User.updateMany(
             { _id: { $in: dC.members } },
             { $pull: {chats: dC._id}}
@@ -318,16 +331,35 @@ export const retriveLatestMessages = (req:Request, res:Response, next: NextFunct
                 { $match: {'messages.lastModified': {$gte: new Date(req.params.lastmessageiso)}}},
                 { $group: {_id: '$_id', 
                     name: {$first: '$name'}, 
+                    owners: {$first: '$owners'}, 
                     members: {$first: '$members'}, 
+                    type: {$first: '$type'},
                     lastRead: {$first: '$lastRead'}, 
                     messages: {$push: '$messages'}}}
             ]).then(async (obj) => {
+                const membersSet = new Set<Types.ObjectId>();
                 for await (const c of obj) {
+                    c.members.forEach(u => membersSet.add(u));
                     if (c.name === null) {
                         await User.findById(c.members.find(el => el.toString() !== userId)).then(u => c.name = u.username);
                     }
                 }
-                res.json(obj);
+                const membersArray = Array.from(membersSet);
+                User.aggregate([
+                    { $match: {_id: { $in: membersArray}}},
+                    { $group: {_id: '$_id', 
+                        username: {$first: '$username'}
+                    }}
+                ]).then( usernames => {
+                    const usernameMap = {};
+                    usernames.forEach(el => { 
+                        usernameMap[el._id] = el.username;
+                    })
+                    res.json({
+                        chatrooms: obj,
+                        usernames: usernameMap
+                    })
+                })
             })
         }
     ) 
