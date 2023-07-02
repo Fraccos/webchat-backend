@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from 'express';
 import { User } from "../models/users";
 import { SocketService } from "../services/socket";
 import { IUser } from "../models/interfaces/users";
+import { Types } from "mongoose";
 
 /**
  * Accetta richiesta di amicizia, gli utenti vengono informati tramite web socket con l'evento newFriend
@@ -14,8 +15,9 @@ import { IUser } from "../models/interfaces/users";
  */
 const acceptRequest = (query: any, request: Request, response: Response) => {
     const user = request.user as IUser;
-    FriendshipRequests.findOneAndRemove(query.id !== undefined ? {_id: query.id} : {sender: query.receiver, receiver: user._id})
+    FriendshipRequests.findOneAndRemove(query.id !== undefined ? {_id: query.id} : {sender: query.sender, receiver: query.receiver})
     .then(fR => {
+        console.log(query.id !== undefined ? {_id: query.id} : {sender: query.sender, receiver: query.receiver});
         User.findById(fR.sender)
         .then(u => {
             u.friends.push(fR.receiver)
@@ -64,7 +66,10 @@ export const sendFriendshipRequest = (req: Request, res: Response, next: NextFun
             });
         }
         else {
-            acceptRequest({sender: req.body.receiver, receiver: user._id}, req, res)
+            User.findById(req.body.receiver).then(u => 
+                next(new Error(`Esiste già una richiesta proveniente da ${u.username}, accettala!`)))
+            
+            //acceptRequest({sender: req.body.receiver, receiver: user._id}, req, res)
         }
     })
 }
