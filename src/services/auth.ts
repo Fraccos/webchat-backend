@@ -84,7 +84,12 @@ export default class AuthService {
   }
 
 
-
+  static logout(req: Request, res: Response, next: NextFunction) {
+    req.logout(function(err) {
+      if (err) { return next(err); }
+      res.sendStatus(200);
+    });
+  }
 
 
   static expressJWT(req: Request, res: Response, next: NextFunction) {

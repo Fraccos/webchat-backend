@@ -6,7 +6,7 @@ export const usersRouter = express.Router();
 
 usersRouter.post("/register", registerUser)
     .post('/login', AuthService.login)
-
+    .post('/logout', AuthService.logout)
     .use(AuthService.isValid)
     .get('/byUsername/:username', getUserByUsername)
 

@@ -25,10 +25,14 @@ const acceptRequest = (query: any, request: Request, response: Response) => {
         .then(u => {
             u.friends.push(fR.sender)
             u.save()
-        });
-        const dstArray = [fR.sender.toString(), fR.receiver.toString()];
-        SocketService.sendAll(dstArray, "newFriend", fR);
-        response.sendStatus(200);
+        })
+        fR.populate('sender').then( fR => fR.populate('receiver')).then(
+            fR => {
+                const dstArray = [fR.sender._id.toString(), fR.receiver._id.toString()];
+                SocketService.sendAll(dstArray, "newFriend", fR);
+                response.sendStatus(200);
+        })
+        
     })
 }
 
@@ -50,9 +54,9 @@ export const sendFriendshipRequest = (req: Request, res: Response) => {
                 receiver: req.body.receiver,
                 timestamp: new Date(),
                 message: req.body.message
-            }).then(fR => {
+            }).then( fR => fR.populate('sender')).then(fR => fR.populate('receiver')).then(fR => {
                 res.json({status: "created", fR});
-                SocketService.sendAll([fR.receiver.toString()], "newFriendshipRequest", fR)
+                SocketService.sendAll([fR.receiver._id.toString()], "newFriendshipRequest", fR)
             });
         }
         else {

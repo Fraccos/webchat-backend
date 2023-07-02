@@ -1,5 +1,5 @@
 import { User } from "../models/users";
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import AuthService from "../services/auth";
 import { IUser } from "../models/interfaces/users";
 import { Types } from "mongoose";
@@ -38,16 +38,35 @@ export const getUserByUsername = (req:Request, res:Response) => {
  */
 export const removeFriend = (req: Request, res: Response) => {
   let user = req.user as IUser;
+  let friendsOfRemoved : Array<IUser["_id"]>| undefined;
+  let remover: IUser | undefined;
+  let removed: IUser | undefined;
   User.findById(req.body.oldFriend).then(u => {
-    u.friends = u.friends.filter(f => f !== user._id) as Types.Array<IUser["_id"]>
-    return u.save();
-  }).then(uU => SocketService.sendAll([req.body.oldFriend], "removedFromFriends", uU));
-  User.findById(user._id).then(u => {
-    u.friends = u.friends.filter(f => f !== req.body.oldFriend) as Types.Array<IUser["_id"]>
+    friendsOfRemoved = u.friends.map(el => el._id);
+    u.friends = u.friends.filter(f => f.toString() !== user._id.toString()) as Types.Array<IUser["_id"]>
+    //Rimuove dalla lista di amici di oldFriend l'utente loggato (che ha richiesto il remove)
     return u.save();
   }).then(uU => {
-    SocketService.sendAll([user._id], "removedFromFriends", uU);
-    res.sendStatus(200);
+    removed = uU
+    User.findById(user._id).then(u => {
+      u.friends = u.friends.filter(f => f.toString() !==  req.body.oldFriend.toString() ) as Types.Array<IUser["_id"]>
+      return u.save();
+    }).then(uU => {
+      remover = uU;
+      SocketService.sendAll([req.body.oldFriend.toString()], "removedFromFriends", 
+      {
+        user: remover,
+        type: "removed"
+      });
+      SocketService.sendAll([user._id.toString()], "removedFromFriends", 
+        {
+          user: removed,
+          type: "remover"
+        }
+      );
+      res.sendStatus(200);
+    });
+
   });
 };
 
@@ -115,18 +134,34 @@ export const searchNewFriendsByUsername = (req:Request<{},{},{},{q: RegExp}>, re
  * @prop req.body.password - Password
  * @param res 
  */
-export const registerUser = (req:Request, res:Response) => {
-  User.register(
-    new User({
-      email: req.body.email,
-      username: req.body.username,
-      friends: []
-    }), req.body.password, function (err, user) {
-      if (err) {
-        res.send(err);
-      } else {
-        res.send({ message: "Successful" });
+export const registerUser = (req:Request, res:Response, next: NextFunction) => {
+  User.exists({email: req.body.email}).then(
+    (ex) => { 
+      if (ex !== null) {
+        next(new Error("Email already used"));
+        return;
       }
+      User.exists({username: req.body.username}).then(
+        (ex) => { 
+          if (ex !== null) {
+            next(new Error("Username already used"));
+            return;
+          }
+          User.register(
+            new User({
+              email: req.body.email,
+              username: req.body.username,
+              friends: []
+            }), req.body.password, function (err, user) {
+              if (err) {
+                res.send(err);
+              } else {
+                res.send({ message: "Successful" });
+              }
+            }
+          )
+        }
+      )
     }
   )
 };
