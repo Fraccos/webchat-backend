@@ -26,7 +26,7 @@ export default class AuthService {
       resave: false,
       cookie: {
         secure: true,
-        sameSite: "none"
+        sameSite: "strict"
       },
       store: new MongoStore({ mongoUrl: dbUrl }) }));
     this.app.use(passport.initialize());
