@@ -3,6 +3,10 @@ import http from "http";
 import AuthService from "./auth";
 
 import { IUser } from "../models/interfaces/users";
+import { User } from "../models/users";
+import { Notification } from "../models/notifications";
+import mongoose, { Types } from "mongoose";
+import { socketPort } from "../Environment";
 
 
 
@@ -10,12 +14,15 @@ export const usersSocket = new Map<string, Socket>();
 export const listenersMap = new Map<string, socketCallback>();
 
 
-export type fnCallback = (...args: any[]) => void
 export type socketCallback = (socket:Socket,...args: any[]) => void
 
 export class SocketService {
+    /**
+     * Inizializza il gestore dei socket
+     * @param server 
+     */
     static init(server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>) {
-        const io = new Server(server, {
+        const io = new Server(socketPort, {
             cors: {
                 origin: '*'
             }
@@ -28,11 +35,29 @@ export class SocketService {
             [...listenersMap.keys()].forEach( key =>
                 socket.on(key, (...args:any) => listenersMap.get(key)(socket, ...args) )
             )
-            this.sendAll([user._id], "pushedMessage", "Benvenuto");
+            this.sendAll([user._id.toString()], "userConnected", {msg: "Benvenuto"});
             console.log(`+ IN: ${user._id}`);
+            Notification.find({receiver: user._id}).then(notifications => {
+                notifications.forEach(n => {
+                    n.deleteOne().then(dN => socket.emit("offlineNotification", dN))
+                });
+            })
+            User.findById(user._id).then(u => {
+                if (u.friends !== null)  {
+                    const dstArray = u.friends.map((el: IUser) => el._id.toString()).filter((el: string) => usersSocket.has(el));
+                    socket.emit("friendsOnline", dstArray);
+                    SocketService.sendAll(dstArray, "friendOnline", {id: u._id}, false);
+                }
+            })
             socket.on('disconnect', function() {
-                usersSocket.delete(user._id)
+                usersSocket.delete(user._id);
                 console.log(`- OUT: ${user._id}`);
+                User.findById(user._id).then(u => {
+                    if (u.friends !== undefined) {
+                        const dstArray = u.friends.map((el: IUser) => el._id.toString()).filter((el: string) => usersSocket.has(el));
+                        SocketService.sendAll(dstArray, "friendOffline", {id: u._id}, false);
+                    }  
+                })
              });
 
         });
@@ -42,15 +67,29 @@ export class SocketService {
         listenersMap.set(eventName, callback);
     }   
 
-    static sendAll(usersID: string[], event: string, object: any) { //si può riscrivere usando il sistema built-in in socket.io di Rooms?
+    /**
+     * Invia un messaggio tramite websocket a uno o più utenti
+     * @param usersID - array di stringhe di user id usate come chiave per identificare i socket attivi
+     * @param event - evento
+     * @param object - oggetto 
+     * @param sendOffline - se true e l'utente non è online, salva l'evento nella tabella Notifications
+     */
+    static sendAll(usersID: string[], event: string, object: any, sendOffline: boolean = true) {
         usersID.forEach( id => {
             const socket = usersSocket.get(id);
             if (socket !== undefined) {
-                //socket.send(event, ...args);
-                socket.emit(event, object); // per inviare un oggetto utilizzabile da React
+                socket.emit(event, object);
             }
             else {
-                console.error(`not found: ${id}, the socket is ${socket} despite having: ${[...usersSocket.keys()]}`)
+                console.error(`not found: ${id}, the socket is ${socket} despite having: ${[...usersSocket.keys()]}`);
+                if (sendOffline) {
+                    Notification.create({
+                        receiver: new Types.ObjectId(id),
+                        timestamp: new Date(),
+                        event: event,
+                        object: object
+                    })
+                }
             }
         })
     }

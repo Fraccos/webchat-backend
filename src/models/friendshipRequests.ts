@@ -1,17 +1,25 @@
 import { Schema, Types, model } from "mongoose";
 import { IFriendshipRequest } from "./interfaces/friendshipRequests";
 
+/**
+ * Schema di una richiesta di amicizia
+ * @param sender - id utente mittente della richiesta di amicizia
+ * @param receiver - id utente destinatario della richiesta di amicizia
+ * @param timestamp - timestamp di invio della richiesta di amicizia
+ * @param rejected - true se la richiesta è stata rifiutata, altrimenti false
+ * @param message - contenuto del messaggio della richiesta di amicizia
+ */
 const friendshipRequestSchema = new Schema<IFriendshipRequest>({
     sender: {type: Types.ObjectId, ref: "User", required: true},
     receiver: {type: Types.ObjectId, ref: "User", required: true},
-    timestamp: {type: Date, required: true, default: new Date},
+    timestamp: {type: Date, required: true, default: new Date()},
     rejected: {type: Boolean, required: true, default: false},
     message: {type: String, required: true}
 })
 
 friendshipRequestSchema.pre("save", function(next) {
     let date: Date;
-    date = new Date(date.getTime() - (1000*60*60*24*14))
+    date = new Date(new Date().getTime() - (1000*60*60*24*14))
     FriendshipRequests.exists({sender: this.sender, receiver: this.receiver, rejected: false})
     .then(r => {
         if (r !== null)

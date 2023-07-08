@@ -1,19 +1,27 @@
-import { createJWT, getUserById, getUserByUsername, registerUser } from "../controllers/users";
+import { createJWT, getFriendsByUserid, getUserById, getUserByUsername, getUsernamesMapByUserIdArray, registerUser, removeFriend, searchNewFriendsByUsername, searchUsersByUsername, } from "../controllers/users";
 import express from "express";
 import AuthService from "../services/auth";
 
 export const usersRouter = express.Router();
 
-usersRouter.get('/', (req, res) => {
-    res.json({message: "ok"});
-})
-.post("/register", registerUser)
-.post('/login', AuthService.login)
+usersRouter.post("/register", registerUser)
+    .post('/login', AuthService.login)
+    .post('/logout', AuthService.logout)
+    .use(AuthService.isValid)
+    .get('/byUsername/:username', getUserByUsername)
 
-.use(AuthService.isValid)
-.get('/byUsername/:username', getUserByUsername)
+    .get('/search/byUsername', searchUsersByUsername)
 
-.get('/byUserID/:userID', getUserById)
+    .get('/search/newfriends/byUsername', searchNewFriendsByUsername)
 
-.post('/jwt/create', createJWT)
-.get('/byUserID/:userID', getUserById);
+
+    .get('/friends/retrive/:id', getFriendsByUserid)
+
+    .get('/byUserID/:userID', getUserById)
+
+    .post('/jwt/create', createJWT)
+    .get('/byUserID/:userID', getUserById)
+
+    .delete("/friends/remove", removeFriend)
+
+    .post("/usernamesMap/retrive", getUsernamesMapByUserIdArray);
