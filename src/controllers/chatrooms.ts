@@ -5,6 +5,17 @@ import { IUser } from "../models/interfaces/users";
 import { IChatroom, IMessage, IMessageContent } from "../models/interfaces/chatrooms";
 import { SocketService } from "../services/socket";
 import { Types } from "mongoose";
+import { error } from "console";
+
+const serveAsError = (error: string | Error): Error => {
+    if (error instanceof Error) {
+        return error;
+    }
+    else {
+        return new Error(error.toString());
+    }
+}
+
 
 /**
  * Controlla se un utente fa parte di una chatroom
@@ -12,12 +23,19 @@ import { Types } from "mongoose";
  * @param user 
  * @returns true se l'utente appartiene alla chatroom, altrimenti false
  */
+
 const isMember = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => { 
     if (c === null) {
         return false;
     }
-    return c.members.includes(user._id)
+    return isMemberFromChatroom(c, user);
 });
+
+function isMemberFromChatroom(chatroom: IChatroom, user: IUser) {
+    return chatroom.members.includes(user._id);
+}
+
+
 
 /**
  * Controlla se un utente è amministratore di una chatroom
@@ -25,12 +43,56 @@ const isMember = async (chatroomId: string, user: IUser) => Chatroom.findById(ch
  * @param user 
  * @returns true se l'utente è amministratore alla chatroom, altrimenti false
  */
-const isOwner = async (chatroomId: string, user: IUser) => Chatroom.findById(chatroomId).then(c => { 
-    if (c === null) {
-        return false;
+async function isOwner(chatroomId: string, user: IUser) {
+    Chatroom.findById(chatroomId).then(c => { 
+        if (c === null) {
+            return false;
+        }
+        return isOwnerFromChatroom(c, user);
+    });
+}
+
+function isOwnerFromChatroom(chatroom: IChatroom, user: IUser) {
+    return chatroom.owners.includes(user._id)
+}
+    
+function hasPermission(chatroom: IChatroom | string, user: IUser, mustAdmin:boolean=true ) {
+    if (mustAdmin) {
+        return new Promise((resolve, reject) => {
+            if (chatroom instanceof Chatroom) {
+                if (chatroom.type === "group") {
+                    if (!isOwnerFromChatroom(chatroom, user)) {
+                        reject("Must be a owner to perform this action")
+                    }
+                }
+                else if (chatroom.type == "single") {
+                    if (!isMemberFromChatroom(chatroom, user)) {
+                        reject("Must be a member to perform this action")
+                    }
+                }
+                resolve(chatroom);
+            }
+            else {
+                try {
+                    const id = new Types.ObjectId(chatroom.toString());
+                    Chatroom.findById(chatroom).then(
+                        c => {
+                            if (c === null || c === undefined) {
+                                reject("Chatroom doesn't exist")
+                            }
+                            else {
+                                return hasPermission(c, user).then(chat => resolve(chat)).catch(error => reject);
+                            }
+                        }
+                    )
+                }
+                catch (error) {
+                    reject("Chatroom doesn't exist")
+                }
+            }
+        })
     }
-    return c.owners.includes(user._id)
-});
+}
 
 /**
  * Inserisce un messaggio in una chatroom, gli utenti vengono informati tramite web socket con l'evento pushedMessage
@@ -220,20 +282,20 @@ export const createChatroom = async (req:Request, res:Response, next: NextFuncti
 export const deleteChatroom = async (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
-    if((req.body.type === "group" && !isOwner(req.body.chatroomId, user)) || (req.body.type === "single" && !isMember(req.body.chatroomId, user))) {
-        next(new Error("You're not an owner of this chatroom"));
-    }
-    Chatroom.findByIdAndDelete(req.body.chatroomId)
-    .then(dC => {
-        //pushMessage(req, res, user, [{type: "notification", value: `User ${user.username} deleted this chatroom`}], dC);
-        User.updateMany(
+    hasPermission(req.body.chatroomId, user)
+        .then( () => Chatroom.findByIdAndDelete(req.body.chatroomId))
+        .then(dC => {
+            console.log("Chat found");
+            User.updateMany(
             { _id: { $in: dC.members } },
             { $pull: {chats: dC._id}}
-        ).then (() => {
-            const dstArray = dC.members.map((u:IUser)=>u._id.toString());
-            SocketService.sendAll(dstArray, "chatroomDeleted", {id: dC._id});
-        });
-    })
+            ).then (() => {
+                const dstArray = dC.members.map((u:IUser)=>u._id.toString());
+                SocketService.sendAll(dstArray, "chatroomDeleted", {id: dC._id});
+                res.sendStatus(200);
+            });
+        })
+        .catch((error: any) => next(new Error(error)))
 };
 
 /**
@@ -399,13 +461,18 @@ export const retrieveMessages = (req:Request<{id: string}, {}, {}, {page: number
 export const addMessage = async (req:Request, res:Response, next: NextFunction) => {
     const user = req.user as IUser;
     const userId = user._id.toString();
-    const check = await isMember(req.body.chatroomId, user)
-    if (!check) {
-        next(Error("Only members can send messages"));
-        return;
+    try {
+        const msgContent = req.body.message.content as IMessageContent[];
+        hasPermission(req.body.chatroomId, user)
+        .then(
+            (c:IChatroom) => pushMessage(req, res, user, msgContent, c)
+        ).catch(error => next(new Error(error))) 
+    } catch(e) {
+        next(new Error("Invalid message content"));
     }
-    Chatroom.findById(req.body.chatroomId)
-    .then(c => pushMessage(req, res, user, req.body.message.content as IMessageContent[], c));
+
+    
+    
 }
 
 /**

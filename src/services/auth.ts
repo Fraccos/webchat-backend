@@ -10,10 +10,15 @@ import { IUser } from "../models/interfaces/users";
 import mongoose from "mongoose";
 import jsonWebToken, { JwtPayload } from "jsonwebtoken";
 import { Socket } from "socket.io";
+import { BannedJWT } from "../models/bannedJWT";
+import { SocketService } from "./socket";
+
+const bannedJWTSet = new Set<string>();
 
 
 export default class AuthService {
   private app: Application;
+
 
   constructor($app: Application) {
     this.app = $app;
@@ -83,33 +88,76 @@ export default class AuthService {
     })(req, res, next);
   }
 
-
+  /*
   static logout(req: Request, res: Response, next: NextFunction) {
     req.logout(function(err) {
-      if (err) { return next(err); }
+      if (err) {
+         return next(err); 
+      }
       res.sendStatus(200);
     });
   }
+  */
 
-
-  static expressJWT(req: Request, res: Response, next: NextFunction) {
-    let token = req.headers.token as string;
+  static async isJWTBanned(jwt: string) {
+    if (bannedJWTSet.has(jwt)) {
+      return true;
+    }
+    else {
+      const found = await BannedJWT.exists({jwt: jwt});
+      if (found) {
+        bannedJWTSet.add(jwt)
+        console.log("BANNED FRO THE FIRST TIME!");
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  static logout(req: Request, res: Response, next: NextFunction) {
+    let token = req.body.token as string;
+    const loggedUser = req.user as IUser;
     if (token) {
       jsonWebToken.verify(
         token,
         sessionSK,
         (error: Error, payload: JwtPayload) => {
           if (payload) {
-            User.findById(payload.data).then((user) => {
-              if (user) {
-                next();
-              } else {
-                res.status(403).json({
-                  error: true,
-                  message: "No User account found.",
-                });
+            if (payload.data.toString() !== loggedUser._id.toString()) {
+              next(new Error("Invalid match between user and JWT"))
+              return;
+            }
+            AuthService.isJWTBanned(token).then(
+              (isBanned) =>  {
+                if (isBanned) {
+                  next("JWT is not valid anymore");
+                }
+                else {
+                  User.findById(payload.data).then((user) => {
+                    if (user) {
+                      req.logout(function(err) {
+                        if (err) {
+                           return next(err); 
+                        }
+                        BannedJWT.create({
+                          jwt: token,
+                          removeDate: new Date(payload.exp + 100)
+                        }).then(()=> {
+                          res.sendStatus(200);
+                          SocketService.disconnetUser(payload.data);
+                        })
+                      });
+                    } else {
+                      res.status(403).json({
+                        error: true,
+                        message: "No User account found.",
+                      });
+                    }
+                  });
+                }
               }
-            });
+            )
+            
           } else {
             res.status(401).json({
               error: true,
@@ -120,10 +168,7 @@ export default class AuthService {
         }
       );
     } else {
-      res.status(401).json({
-        error: true,
-        message: "Provide Token",
-      });
+      next("JWT Token is missing")
     }
   }
 
@@ -141,18 +186,28 @@ export default class AuthService {
                 return next(new Error('Invalid Token'))
             }
             if (payload) {
-                User.findById(payload.data).then((user) => {
-                    if (user) {
-                        socket.data = {
-                            ...socket.data,
-                            user: user
+                AuthService.isJWTBanned(token.toString()).then(
+                  isBanned => {
+                    if (!isBanned) {
+                      User.findById(payload.data).then((user) => {
+                        if (user) {
+                            socket.data = {
+                                ...socket.data,
+                                user: user
+                            }
+                            next();
                         }
-                        next();
+                        else {
+                          return next(new Error('User not found'));
+                        }
+                      })
                     }
                     else {
-                        return next(new Error('User not found'));
+                      next(new Error("JWT Token is banned!"))
                     }
-                })
+                  }
+                )
+                
             } 
         }
     )

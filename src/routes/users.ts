@@ -6,8 +6,9 @@ export const usersRouter = express.Router();
 
 usersRouter.post("/register", registerUser)
     .post('/login', AuthService.login)
-    .post('/logout', AuthService.logout)
+
     .use(AuthService.isValid)
+    .post('/logout', AuthService.logout)
     .get('/byUsername/:username', getUserByUsername)
 
     .get('/search/byUsername', searchUsersByUsername)
