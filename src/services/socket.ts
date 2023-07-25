@@ -22,11 +22,13 @@ export class SocketService {
      * @param server 
      */
     static init(server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>) {
-        const io = new Server(socketPort, {
+        const io = new Server(server, 
+            /*{
             cors: {
                 origin: '*'
             }
-        });
+            }*/
+        );
         io.use(AuthService.authSocket);
     
         io.on("connection", (socket) => {
