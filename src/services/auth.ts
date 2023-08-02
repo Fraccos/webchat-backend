@@ -13,7 +13,7 @@ import { Socket } from "socket.io";
 import { BannedJWT } from "../models/bannedJWT";
 import { SocketService } from "./socket";
 
-const bannedJWTSet = new Set<string>();
+const bannedJWTMap = new Map<string, Date>();
 
 
 export default class AuthService {
@@ -62,6 +62,29 @@ export default class AuthService {
       sessionSK,
       { expiresIn: "1h" });
   }
+
+  static removeExpiredJWTFromCache() {
+    [...bannedJWTMap.keys()].forEach(
+      key => {
+        const expDate = bannedJWTMap.get(key);
+        if (expDate) {
+          if (Date.now() > expDate.getTime()) {
+            //Token is expired
+            bannedJWTMap.delete(key);
+          }
+        }
+    })
+  }
+
+  static removeExpiredJWTFromDB() {
+    BannedJWT.deleteMany({
+      removeDate: {
+        $gte: new Date()
+      }
+    })
+  }
+
+
   static login(req: Request, res: Response, next: NextFunction) {
     passport.authenticate("local", (errors: Error, user: IUser) => {
       if (user) {
@@ -82,6 +105,8 @@ export default class AuthService {
           });
         })
       } else {
+        console.log(JSON.stringify(req.body));
+        console.log("----");
         next(new Error("Could not authenticate user."));
         return;
       }
@@ -100,14 +125,13 @@ export default class AuthService {
   */
 
   static async isJWTBanned(jwt: string) {
-    if (bannedJWTSet.has(jwt)) {
+    if (bannedJWTMap.get(jwt)) {
       return true;
     }
     else {
-      const found = await BannedJWT.exists({jwt: jwt});
-      if (found) {
-        bannedJWTSet.add(jwt)
-        console.log("BANNED FRO THE FIRST TIME!");
+      const foundJWT = await BannedJWT.findOne({jwt: jwt});
+      if (foundJWT) {
+        bannedJWTMap.set(jwt, foundJWT.removeDate);
         return true;
       }
     }
@@ -141,8 +165,9 @@ export default class AuthService {
                         }
                         BannedJWT.create({
                           jwt: token,
-                          removeDate: new Date(payload.exp + 100)
-                        }).then(()=> {
+                          removeDate: new Date(payload.exp + Date.now())
+                        }).then((createdJWT)=> {
+                          bannedJWTMap.set(createdJWT.jwt, createdJWT.removeDate);
                           res.sendStatus(200);
                           SocketService.disconnetUser(payload.data);
                         })

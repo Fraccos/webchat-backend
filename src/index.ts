@@ -4,15 +4,15 @@ import mongoose from "mongoose";
 import https from 'https';
 import fs from 'fs';
 import express, { NextFunction , Response, Request } from "express";
-
+import {CronJob} from 'cron'
 import { usersRouter } from "./routes/users";
 import { friendsRouter } from "./routes/friendshipRequests";
 import { chatroomsRouter } from "./routes/chatrooms";
 import AuthService from "./services/auth";
 import { SocketService } from "./services/socket";
-
+import mongoSanitize from "express-mongo-sanitize"
 import Helmet from "helmet"
-import { expressCspHeader, SELF, INLINE, NONE } from "express-csp-header";
+import { expressCspHeader, INLINE, NONE } from "express-csp-header";
 
 
 const app = express();
@@ -38,8 +38,15 @@ const db = mongoose.connection;
 const authService = new AuthService(app);
 authService.init()
 
+setInterval(()=>AuthService.removeExpiredJWTFromCache(), 60*1000);
+
+new CronJob("0 6 * * *", AuthService.removeExpiredJWTFromDB)
 
 app.use(express.json())
+
+app.use(mongoSanitize());
+
+app.use(express.urlencoded({extended: true}))
     .use(cors({credentials: true, origin: true}))
     const host = ["192.168.1.8:8080", "localhost:8080"];
     app.use(expressCspHeader({
@@ -83,3 +90,4 @@ db.once("open", () => {
         console.log(`Listening on port ${apiPort}`);
     }); 
 });
+
