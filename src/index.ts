@@ -1,20 +1,25 @@
 import { dbUrl, apiPort, serverKey, serverCert } from "./Environment";
-import express, { NextFunction } from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import http from 'http';
 import https from 'https';
 import fs from 'fs';
-import { Response, Request } from "express";
-
+import express, { NextFunction , Response, Request } from "express";
+import {CronJob} from 'cron'
 import { usersRouter } from "./routes/users";
 import { friendsRouter } from "./routes/friendshipRequests";
 import { chatroomsRouter } from "./routes/chatrooms";
 import AuthService from "./services/auth";
 import { SocketService } from "./services/socket";
+import mongoSanitize from "express-mongo-sanitize"
+import Helmet from "helmet"
+import { expressCspHeader, INLINE, NONE } from "express-csp-header";
 
 
 const app = express();
+
+
+app.use(Helmet());
+
 const server = https
 .createServer(
       // Provide the private and public key to the server by reading each
@@ -32,11 +37,35 @@ const db = mongoose.connection;
 const authService = new AuthService(app);
 authService.init()
 
+setInterval(()=>AuthService.removeExpiredJWTFromCache(), 60*1000);
+
+new CronJob("0 6 * * *", AuthService.removeExpiredJWTFromDB)
 
 app.use(express.json())
-    .use(cors({credentials: true, origin: true}))
 
-    //.use(express.static("../build"))
+app.use(mongoSanitize());
+
+app.use(express.urlencoded({extended: true}))
+    .use(cors({credentials: true, origin: true}))
+    const host = ["192.168.1.8:8080", "localhost:8080"];
+    app.use(expressCspHeader({
+        directives: {
+            'default-src': host,
+            'script-src': host,
+            'style-src': [...host, INLINE],
+            'font-src': ["fonts.gstatic.com", ...host],
+            'img-src': ['data:', ...host],
+            'worker-src': [NONE],
+            'connect-src': [...host, ...host.map(el => "wss://" + el)],
+            'form-action': host,
+            'frame-ancestors': host,
+            'block-all-mixed-content': true
+        }
+    }))
+
+
+    .use(express.static("./build"))
+
 
     .use('/api/users', usersRouter)
     .use("/api/friends", friendsRouter)

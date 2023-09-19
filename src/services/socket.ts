@@ -65,7 +65,12 @@ export class SocketService {
 
     static on(eventName: string, callback:socketCallback) {
         listenersMap.set(eventName, callback);
-    }   
+    } 
+    
+    static disconnetUser(userId: string) {
+        usersSocket.get(userId)?.disconnect();
+    }
+
 
     /**
      * Invia un messaggio tramite websocket a uno o più utenti
