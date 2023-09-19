@@ -37,6 +37,7 @@ function isMemberFromChatroom(chatroom: IChatroom, user: IUser) {
 
 
 
+
 /**
  * Controlla se un utente è amministratore di una chatroom
  * @param chatroomId - id della chatroom
@@ -470,9 +471,6 @@ export const addMessage = async (req:Request, res:Response, next: NextFunction) 
     } catch(e) {
         next(new Error("Invalid message content"));
     }
-
-    
-    
 }
 
 /**

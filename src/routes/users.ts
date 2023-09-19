@@ -16,6 +16,7 @@ usersRouter.post("/register", registerUser)
     })
     .use(AuthService.isValid)
     .post('/logout', AuthService.logout)
+
     .get('/byUsername/:username', getUserByUsername)
 
     .get('/search/byUsername', searchUsersByUsername)

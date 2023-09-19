@@ -22,13 +22,11 @@ export class SocketService {
      * @param server 
      */
     static init(server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>) {
-        const io = new Server(server, 
-            /*{
+        const io = new Server(socketPort, {
             cors: {
                 origin: '*'
             }
-            }*/
-        );
+        });
         io.use(AuthService.authSocket);
     
         io.on("connection", (socket) => {
@@ -72,6 +70,7 @@ export class SocketService {
     static disconnetUser(userId: string) {
         usersSocket.get(userId)?.disconnect();
     }
+
 
     /**
      * Invia un messaggio tramite websocket a uno o più utenti

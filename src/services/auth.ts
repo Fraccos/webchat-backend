@@ -32,6 +32,7 @@ export default class AuthService {
       cookie: {
         secure: true,
         sameSite: "strict"
+
       },
       store: new MongoStore({ mongoUrl: dbUrl }) }));
     this.app.use(passport.initialize());
@@ -84,7 +85,6 @@ export default class AuthService {
     })
   }
 
-
   static login(req: Request, res: Response, next: NextFunction) {
     passport.authenticate("local", (errors: Error, user: IUser) => {
       if (user) {
@@ -105,8 +105,6 @@ export default class AuthService {
           });
         })
       } else {
-        console.log(JSON.stringify(req.body));
-        console.log("----");
         next(new Error("Could not authenticate user."));
         return;
       }
@@ -141,6 +139,7 @@ export default class AuthService {
   static logout(req: Request, res: Response, next: NextFunction) {
     let token = req.body.token as string;
     const loggedUser = req.user as IUser;
+
     if (token) {
       jsonWebToken.verify(
         token,
@@ -183,6 +182,7 @@ export default class AuthService {
               }
             )
             
+
           } else {
             res.status(401).json({
               error: true,
@@ -232,7 +232,7 @@ export default class AuthService {
                     }
                   }
                 )
-                
+
             } 
         }
     )

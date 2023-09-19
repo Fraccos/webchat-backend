@@ -20,7 +20,6 @@ const app = express();
 
 app.use(Helmet());
 
-
 const server = https
 .createServer(
       // Provide the private and public key to the server by reading each
@@ -67,6 +66,7 @@ app.use(express.urlencoded({extended: true}))
 
     .use(express.static("./build"))
 
+
     .use('/api/users', usersRouter)
     .use("/api/friends", friendsRouter)
     .use('/api/chats', chatroomsRouter)
@@ -90,4 +90,3 @@ db.once("open", () => {
         console.log(`Listening on port ${apiPort}`);
     }); 
 });
-
